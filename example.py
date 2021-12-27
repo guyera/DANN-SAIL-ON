@@ -25,7 +25,7 @@ def custom_collate(batch):
 dataset = SVODataset(
     name = 'Custom',
     data_root = 'Custom',
-    csv_path = 'Custom/annotations/dataset_v3_train.csv',
+    csv_path = 'Custom/annotations/dataset_v4_2_train.csv',
     training = True
 )
 
