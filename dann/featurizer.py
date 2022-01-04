@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-from typing import Optional
+from typing import Optional, List, Dict
+import argparse
 
 
 class Featurizer(nn.Module):
@@ -23,6 +24,19 @@ class Featurizer(nn.Module):
         f = self.backbone(x)
         f = self.bottleneck(f)
         return f
+
+    def get_parameters(self, backbone_lr: Optional[float] = 0.1, bottleneck_lr: Optional[float] = 1.) -> List[Dict]:
+        """A parameter list which decides optimization hyper-parameters,
+            such as the relative learning rate of each layer
+        """
+        
+        params = [
+            {"params": self.backbone.parameters(), "lr": backbone_lr},
+            {"params": self.bottleneck.parameters(), "lr": bottleneck_lr},
+        ]
+
+        return params
+
         
 
 
