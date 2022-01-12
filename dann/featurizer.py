@@ -6,6 +6,7 @@ import argparse
 
 class Featurizer(nn.Module):
     def __init__(self, backbone: nn.Module, bottleneck_dim: int):
+        super(Featurizer, self).__init__()
         self.backbone = backbone
         bottleneck = nn.Sequential(
             nn.AdaptiveAvgPool2d(output_size=(1, 1)),

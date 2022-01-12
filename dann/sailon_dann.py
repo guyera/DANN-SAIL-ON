@@ -280,9 +280,9 @@ def main(args):
     verb_grl = WarmStartGradientReverseLayer(hi=args.verb_trade_off, max_iters=max_iters)
     object_grl = WarmStartGradientReverseLayer(hi=args.object_trade_off, max_iters=max_iters)
     feature_extractor = Featurizer(backbone=backbone, bottleneck_dim=args.bottleneck_dim)
-    subject_classifier = ClassifierHead(bottleneck_dim=args.bottleneck_dim)
-    verb_discriminator = ClassifierHead(bottleneck_dim=args.bottleneck_dim, is_discriminator=True, grl=verb_grl)
-    object_discriminator = ClassifierHead(bottleneck_dim=args.bottleneck_dim, is_discriminator=True, grl=object_grl)
+    subject_classifier = ClassifierHead(num_classes=5, bottleneck_dim=args.bottleneck_dim)
+    verb_discriminator = ClassifierHead(num_classes=8, bottleneck_dim=args.bottleneck_dim, is_discriminator=True, grl=verb_grl)
+    object_discriminator = ClassifierHead(num_classes=12, bottleneck_dim=args.bottleneck_dim, is_discriminator=True, grl=object_grl)
 
     # move all nets to device
     feature_extractor = feature_extractor.to(device)
@@ -376,7 +376,7 @@ if __name__ == '__main__':
     parser.add_argument('--verb-trade-off',
                         default=1.,
                         type=float,
-                        help='tthe trade-off hyper-parameter for the verb classifying head')
+                        help='the trade-off hyper-parameter for the verb classifying head')
     parser.add_argument('--object-trade-off',
                         default=1.,
                         type=float,
@@ -435,10 +435,14 @@ if __name__ == '__main__':
                         default=0,
                         type=int,
                         help='seed for initializing training. ')
+    parser.add_argument('--cudnn-benchmark',
+                        default=True,
+                        type=bool,
+                        help='flag for torch.cudnn_benchmark')
     args = parser.parse_args()
     wandb.login()
     wandb.init()
-    args.project_folder = os.path.join('saved_models', wandb.run.project, wandb.run.names.project_folder)   
+    args.project_folder = os.path.join('saved_models', wandb.run.project, wandb.run.name)   
     if not os.path.isdir(args.project_folder):
         os.makedirs(args.project_folder)
     # update the args with the sweep configurations

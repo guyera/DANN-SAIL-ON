@@ -1,0 +1,138 @@
+2022-01-12 21:45:13,444 INFO    MainThread:53364 [wandb_setup.py:_flush():71] setting env: {}
+2022-01-12 21:45:13,445 INFO    MainThread:53364 [wandb_setup.py:_flush():71] setting login settings: {}
+2022-01-12 21:45:13,445 INFO    MainThread:53364 [wandb_setup.py:_flush():71] setting login settings: {}
+2022-01-12 21:45:13,445 INFO    MainThread:53364 [wandb_init.py:_log_setup():371] Logging user logs to /Users/ajaysridhar/Desktop/FIles/Machine-Learning/research/Sailon-Box-Dataset/wandb/run-20220112_214513-13gurtnk/logs/debug.log
+2022-01-12 21:45:13,445 INFO    MainThread:53364 [wandb_init.py:_log_setup():372] Logging internal logs to /Users/ajaysridhar/Desktop/FIles/Machine-Learning/research/Sailon-Box-Dataset/wandb/run-20220112_214513-13gurtnk/logs/debug-internal.log
+2022-01-12 21:45:13,446 INFO    MainThread:53364 [wandb_init.py:init():404] calling init triggers
+2022-01-12 21:45:13,446 INFO    MainThread:53364 [wandb_init.py:init():409] wandb.init called with sweep_config: {}
+config: {}
+2022-01-12 21:45:13,446 INFO    MainThread:53364 [wandb_init.py:init():460] starting backend
+2022-01-12 21:45:13,446 INFO    MainThread:53364 [backend.py:_multiprocessing_setup():99] multiprocessing start_methods=spawn,fork,forkserver, using: spawn
+2022-01-12 21:45:13,470 INFO    MainThread:53364 [backend.py:ensure_launched():216] starting backend process...
+2022-01-12 21:45:13,480 INFO    MainThread:53364 [backend.py:ensure_launched():221] started backend process with pid: 53390
+2022-01-12 21:45:13,486 INFO    MainThread:53364 [wandb_init.py:init():469] backend started and connected
+2022-01-12 21:45:13,491 INFO    MainThread:53364 [wandb_init.py:init():533] updated telemetry
+2022-01-12 21:45:13,515 INFO    MainThread:53364 [wandb_init.py:init():563] communicating current version
+2022-01-12 21:45:16,184 INFO    MainThread:53364 [wandb_init.py:init():568] got version response 
+2022-01-12 21:45:16,184 INFO    MainThread:53364 [wandb_init.py:init():578] communicating run to backend with 30 second timeout
+2022-01-12 21:45:16,619 INFO    MainThread:53364 [wandb_init.py:init():606] starting run threads in backend
+2022-01-12 21:45:20,960 INFO    MainThread:53364 [wandb_run.py:_console_start():1810] atexit reg
+2022-01-12 21:45:20,961 INFO    MainThread:53364 [wandb_run.py:_redirect():1684] redirect: SettingsConsole.REDIRECT
+2022-01-12 21:45:20,961 INFO    MainThread:53364 [wandb_run.py:_redirect():1689] Redirecting console.
+2022-01-12 21:45:20,970 INFO    MainThread:53364 [wandb_run.py:_redirect():1745] Redirects installed.
+2022-01-12 21:45:20,970 INFO    MainThread:53364 [wandb_init.py:init():633] run started, returning control to user process
+2022-01-12 21:45:20,972 INFO    MainThread:53364 [wandb_run.py:_config_callback():956] config_cb None None {'bottleneck_dim': 256, 'verb_trade_off': 0.0, 'object_trade_off': 0.0, 'train_batch_size': 32, 'eval_batch_size': 64, 'epochs': 30, 'lr': 0.01, 'momentum': 0.9, 'weight_decay': 0.001, 'workers': 4, 'print_freq': 100, 'seed': 0, 'cudnn_benchmark': True, 'project_folder': 'saved_models/Sailon-Box-Dataset-dann/silver-frost-3'}
+2022-01-12 21:51:07,652 INFO    MainThread:53364 [wandb_run.py:_atexit_cleanup():1780] got exitcode: 1
+2022-01-12 21:51:07,655 INFO    MainThread:53364 [wandb_run.py:_restore():1752] restore
+2022-01-12 21:51:10,250 INFO    MainThread:53364 [wandb_run.py:_wait_for_finish():1912] got exit ret: file_counts {
+  wandb_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 938
+  total_bytes: 938
+}
+
+2022-01-12 21:51:10,761 INFO    MainThread:53364 [wandb_run.py:_wait_for_finish():1912] got exit ret: file_counts {
+  wandb_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 938
+  total_bytes: 938
+}
+
+2022-01-12 21:51:10,967 INFO    MainThread:53364 [wandb_run.py:_wait_for_finish():1912] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 938
+  total_bytes: 20100
+}
+
+2022-01-12 21:51:11,072 INFO    MainThread:53364 [wandb_run.py:_wait_for_finish():1912] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 938
+  total_bytes: 20100
+}
+
+2022-01-12 21:51:11,175 INFO    MainThread:53364 [wandb_run.py:_wait_for_finish():1912] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 938
+  total_bytes: 20100
+}
+
+2022-01-12 21:51:11,289 INFO    MainThread:53364 [wandb_run.py:_wait_for_finish():1912] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 938
+  total_bytes: 20100
+}
+
+2022-01-12 21:51:11,395 INFO    MainThread:53364 [wandb_run.py:_wait_for_finish():1912] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 938
+  total_bytes: 20100
+}
+
+2022-01-12 21:51:11,497 INFO    MainThread:53364 [wandb_run.py:_wait_for_finish():1912] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 938
+  total_bytes: 20100
+}
+
+2022-01-12 21:51:11,603 INFO    MainThread:53364 [wandb_run.py:_wait_for_finish():1912] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 938
+  total_bytes: 20100
+}
+
+2022-01-12 21:51:11,706 INFO    MainThread:53364 [wandb_run.py:_wait_for_finish():1912] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 5416
+  total_bytes: 20100
+}
+
+2022-01-12 21:51:11,809 INFO    MainThread:53364 [wandb_run.py:_wait_for_finish():1912] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 5416
+  total_bytes: 20100
+}
+
+2022-01-12 21:51:11,916 INFO    MainThread:53364 [wandb_run.py:_wait_for_finish():1912] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 5416
+  total_bytes: 20100
+}
+
+2022-01-12 21:51:12,019 INFO    MainThread:53364 [wandb_run.py:_wait_for_finish():1912] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 19185
+  total_bytes: 20100
+}
+
+2022-01-12 21:51:12,122 INFO    MainThread:53364 [wandb_run.py:_wait_for_finish():1912] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 19185
+  total_bytes: 20100
+}
+

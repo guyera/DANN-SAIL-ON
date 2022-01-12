@@ -6,7 +6,8 @@ from typing import Optional, List, Dict
 
 
 class ClassifierHead(nn.Module):
-    def __init__(self, head: Optional[nn.Module], bottleneck_dim: int, num_classes: int, is_discriminator: Optional[bool] = False, grl: Optional[GradientReverseLayer] = None):
+    def __init__(self, bottleneck_dim: int, num_classes: int, head: Optional[nn.Module] = None, is_discriminator: Optional[bool] = False, grl: Optional[GradientReverseLayer] = None):
+        super(ClassifierHead, self).__init__()
         self.bottleneck_dim = bottleneck_dim
         self.num_classes = num_classes
         self.is_discriminator = is_discriminator
