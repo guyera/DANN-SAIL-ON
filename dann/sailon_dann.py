@@ -9,13 +9,14 @@ from classifier_head import ClassifierHead
 from torch.optim import SGD
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
+import torch.backends.cudnn as cudnn
 from typing import List, Optional, Tuple
 import os
 import shutil
 import argparse
 import wandb
 import numpy as np
-from utils import accuracy
+from utils import accuracy, print_log
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -144,7 +145,7 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
     return train_log
 
 
-def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor: Featurizer, classify_heads: List[Featurizer]):
+def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor: Featurizer, classify_heads: List[Featurizer], dataset_type: Optional[str] ='Validaton'):
     subject_classifier, verb_discriminator, object_discriminator = classify_heads
     
     feature_extractor.eval()
@@ -192,7 +193,7 @@ def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor
             object_accuracies.append(object_accuracy)
 
             if count % args.print_freq == 0:
-                print(f"Results from validation batch {count}: ")
+                print(f"Results from {dataset_type} batch {count}: ")
                 print(f"Subject: Loss = {subject_loss}, Accuracy = {subject_accuracy}%")
                 print(f"Verb: Loss = {verb_loss}, Accuracy = {verb_accuracy}%")
                 print(f"Object: Loss = {object_loss}, Accuracy = {object_accuracy}%")
@@ -209,51 +210,79 @@ def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor
     object_accuracies = np.array(object_accuracies)
 
     val_log.update({
-        "Subject Classification Loss (Validation Set)": subject_losses.mean(),
-        "Verb Classification Loss (Validation Set)": verb_losses.mean(),
-        "Object Classification Loss (Validation Set)": object_losses.mean(),
+        f"Subject Classification Loss ({dataset_type} Set)": subject_losses.mean(),
+        f"Verb Classification Loss ({dataset_type} Set)": verb_losses.mean(),
+        f"Object Classification Loss ({dataset_type} Set)": object_losses.mean(),
 
-        "Subject Classification Accuracy (Validation Set)": subject_accuracies.mean(),
-        "Verb Classification Accuracy (Validation Set)": verb_accuracies.mean(),
-        "Object Classification Accuracy (Validation Set)": object_accuracies.mean(),
+        f"Subject Classification Accuracy ({dataset_type} Set)": subject_accuracies.mean(),
+        f"Verb Classification Accuracy ({dataset_type} Set)": verb_accuracies.mean(),
+        f"Object Classification Accuracy ({dataset_type} Set)": object_accuracies.mean(),
     })
     
-    return val_log
+    return val_log, subject_accuracies.mean()
 
-def evaluate():
+def test(args: argparse.Namespace, test_loader: DataLoader, feature_extractor: Featurizer, classify_heads: List[Featurizer], dataset_type: Optional[str] = 'Test'):
     # TODO: post-training validation
-    return 0    
+    # TODO: same evaluation as OfficeHome dataset (calibration, accuracy)
+    test_log = validate(args, test_loader, feature_extractor, classify_heads, dataset_type)
+    return test_log 
 
 def main(args):
 
-    dataset = SVODataset(
+    torch.manual_seed(args.seed)
+    cudnn.deterministic = True
+    cudnn.benchmark = args.cudnn_benchmark
+
+    full_dataset = SVODataset(
         name = 'Custom',
         data_root = 'Custom',
         csv_path = 'Custom/annotations/dataset_v4_2_train.csv',
         training = True
     )
 
-    # TODO: custom batch_size for dataloader
+    train_size = int(0.8 * len(full_dataset))
+    val_size = len(full_dataset) - train_size
+    train_dataset, val_dataset = torch.utils.data.random_split(full_dataset, [train_size, val_size])
+
+    test_dataset = SVODataset(
+        name = 'Custom',
+        data_root = 'Custom',
+        csv_path = 'Custom/annotations/dataset_v4_2_val.csv',
+        training = True # TODO: figure out what this is
+    )
+
     # TODO: define a image transformation to reshape the image
-    data_loader = torch.utils.data.DataLoader(
-        dataset,
-        batch_size = 16,
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size = args.train_batch_size,
         shuffle = True,
         collate_fn = custom_collate
     )
 
-    # TODO: define train_loader, val_loader, test_loader
+    test_loader = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size = args.eval_batch_size,
+        shuffle = True,
+        collate_fn = custom_collate
+    )
+
+    test_loader = torch.utils.data.DataLoader(
+        test_dataset,
+        batch_size = args.eval_batch_size,
+        shuffle = True,
+        collate_fn = custom_collate
+    )
 
     # init weights
     backbone = resnet18(pretrained=True)
-    # TODO: define warm gradient layer to take up the entire training sequence
-    # TODO: calculate the number of iterations
-    max_iters = 1000
-    warm_grl = WarmStartGradientReverseLayer(max_iters=max_iters)
+    # define gradient layer with scheduled trade-off parameter for the verb and object discriminator
+    max_iters = len(train_loader) * args.epochs
+    verb_grl = WarmStartGradientReverseLayer(hi=args.verb_trade_off, max_iters=max_iters)
+    object_grl = WarmStartGradientReverseLayer(hi=args.object_trade_off, max_iters=max_iters)
     feature_extractor = Featurizer(backbone=backbone, bottleneck_dim=args.bottleneck_dim)
     subject_classifier = ClassifierHead(bottleneck_dim=args.bottleneck_dim)
-    verb_discriminator = ClassifierHead(bottleneck_dim=args.bottleneck_dim, is_discriminator=True, grl=warm_grl)
-    object_discriminator = ClassifierHead(bottleneck_dim=args.bottleneck_dim, is_discriminator=True, grl=warm_grl)
+    verb_discriminator = ClassifierHead(bottleneck_dim=args.bottleneck_dim, is_discriminator=True, grl=verb_grl)
+    object_discriminator = ClassifierHead(bottleneck_dim=args.bottleneck_dim, is_discriminator=True, grl=object_grl)
 
     # move all nets to device
     feature_extractor = feature_extractor.to(device)
@@ -299,15 +328,21 @@ def main(args):
     print("######## STARTING TRAINING LOOP #########")
     for epoch in range(args.epochs):
         print(f"Starting epoch {epoch}")
-        acc = train(train_loader, feature_extractor, classify_heads, optimizers)
+        train_log = train(args, train_loader, feature_extractor, classify_heads, optimizers)
+        print(f"Epoch {epoch} Training Results")
+        print_log(train_log)
 
-        # save the latest module
+        val_log, acc = validate(args, val_loader, feature_extractor, classify_heads)
+        print(f"Epoch {epoch} Validation Results")
+        print_log(val_log)
+
+        # save the latest module  
         for module_name in module_names:
             torch.save(feature_extractor.state_dict(), os.path.join(latest_path, f'{module_name}.pth'))
 
         if acc > best_acc:
             best_epoch = epoch
-            acc = best_acc
+            best_acc = acc
             # save the best model
             for module_name in module_names:
                 shutil.copy(
@@ -315,28 +350,17 @@ def main(args):
                     os.path.join(best_path, f'{module_name}.pth'),
                 )
     print("######## ENDING TRAINING LOOP #########\n")
+
+
     print("######## STARTING EVALUATION #########")
-
+    # Load the best model for evaluation
+    for module, module_name in ([feature_extractor] + classify_heads), module_names:
+        module.load_state_dict(
+            torch.load(os.path.join(best_path, f'{module_name}.pth')))
+    
+    test_log, test_acc = test(args, test_loader, feature_extractor, classify_heads)
+    print_log(test_log)
     print("######## ENDING EVALUATION #########\n")
-    # TODO: post-training evaluation
-            
-
-    # for subject_images, verb_images, object_images, spatial_encodings, subject_labels, verb_labels, object_labels in data_loader:
-    #     for subject_image, verb_image, object_image, spatial_encoding, subject_label, verb_label, object_label in zip(subject_images, verb_images, object_images, spatial_encodings, subject_labels, verb_labels, object_labels):
-    #         if subject_image is not None:
-    #             print(f'Subject image shape: {subject_image.shape}')
-    #         if verb_image is not None:
-    #             print(f'Verb image shape: {verb_image.shape}')
-    #         if object_image is not None:
-    #             print(f'Object image shape: {object_image.shape}')
-    #         if spatial_encoding is not None:
-    #             print(f'Spatial encoding shape: {spatial_encoding.shape}')
-    #         if subject_label is not None:
-    #             print(f'Subject label shape: {subject_label.shape}')
-    #         if verb_label is not None:
-    #             print(f'Verb label shape: {verb_label.shape}')
-    #         if object_label is not None:
-    #             print(f'Object label shape: {object_label.shape}')
 
 
 
@@ -347,11 +371,66 @@ if __name__ == '__main__':
                         default=256,
                         type=int,
                         help='Dimension of bottleneck')
-    parser.add_argument('--subject-trade-off',
+    parser.add_argument('--verb-trade-off',
                         default=1.,
                         type=float,
-                        help='the trade-off hyper-parameter for transfer loss with the subject head')
-    parser.add_argument('--subject-trade-off',
+                        help='tthe trade-off hyper-parameter for the verb classifying head')
+    parser.add_argument('--object-trade-off',
                         default=1.,
                         type=float,
-                        help='the trade-off hyper-parameter for transfer loss with the subject head')
+                        help='the trade-off hyper-parameter for the object classifying head')
+    # training hyperparameters
+    parser.add_argument('-b',
+                        '--train-batch-size',
+                        default=32,
+                        type=int,
+                        metavar='N',
+                        help='mini-batch size used for training (default: 32)')
+    parser.add_argument('-be',
+                        '--eval-batch-size',
+                        default=64,
+                        type=int,
+                        metavar='N',
+                        help='mini-batch size used for evaluation (validation and testing) (default: 64)')
+    parser.add_argument('--epochs',
+                        default=30,
+                        type=int,
+                        metavar='N',
+                        help='number of total epochs to run (default: 30)')
+    parser.add_argument('--lr',
+                        '--learning-rate',
+                        default=0.01,
+                        type=float,
+                        metavar='LR',
+                        help='initial learning rate',
+                        dest='lr')
+    parser.add_argument('--momentum',
+                        default=0.9,
+                        type=float,
+                        metavar='M',
+                        help='momentum')
+    parser.add_argument('--wd',
+                        '--weight-decay',
+                        default=1e-3,
+                        type=float,
+                        metavar='W',
+                        help='weight decay (default: 1e-3)',
+                        dest='weight_decay')
+    # misc.
+    parser.add_argument('-j',
+                        '--workers',
+                        default=4,
+                        type=int,
+                        metavar='N',
+                        help='number of data loading workers (default: 4)')
+    parser.add_argument('-p',
+                        '--print-freq',
+                        default=100,
+                        type=int,
+                        metavar='N',
+                        help='print frequency (default: 100)')
+    parser.add_argument('--seed',
+                        default=0,
+                        type=int,
+                        help='seed for initializing training. ')
+    parser.add_argument('-')
