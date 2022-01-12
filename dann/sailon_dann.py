@@ -259,7 +259,7 @@ def main(args):
         collate_fn = custom_collate
     )
 
-    test_loader = torch.utils.data.DataLoader(
+    val_loader = torch.utils.data.DataLoader(
         val_dataset,
         batch_size = args.eval_batch_size,
         shuffle = True,
@@ -319,10 +319,9 @@ def main(args):
     classify_heads = [subject_classifier, verb_discriminator, object_discriminator]
     optimizers = [featurizer_opt, subject_opt, verb_opt, object_opt]
     best_acc = 0.0
-    best_epoch = 0
-    save_path = os.path.join('saved_models', args.project_name)    
-    latest_path = os.path.join(save_path, 'latest')
-    best_path = os.path.join(save_path, 'best')
+    best_epoch = 0   
+    latest_path = os.path.join(args.project_folder , 'latest')
+    best_path = os.path.join(args.project_folder , 'best')
     module_names = ['featurizer', 'subject', 'verb', 'object']
     
     print("######## STARTING TRAINING LOOP #########")
@@ -330,10 +329,12 @@ def main(args):
         print(f"Starting epoch {epoch}")
         train_log = train(args, train_loader, feature_extractor, classify_heads, optimizers)
         print(f"Epoch {epoch} Training Results")
+        wandb.log(train_log)
         print_log(train_log)
 
         val_log, acc = validate(args, val_loader, feature_extractor, classify_heads)
         print(f"Epoch {epoch} Validation Results")
+        wandb.log(val_log)
         print_log(val_log)
 
         # save the latest module  
@@ -357,10 +358,11 @@ def main(args):
     for module, module_name in ([feature_extractor] + classify_heads), module_names:
         module.load_state_dict(
             torch.load(os.path.join(best_path, f'{module_name}.pth')))
-    
     test_log, test_acc = test(args, test_loader, feature_extractor, classify_heads)
+    wandb.log(test_log)
     print_log(test_log)
     print("######## ENDING EVALUATION #########\n")
+    wandb.finish()
 
 
 
@@ -433,4 +435,15 @@ if __name__ == '__main__':
                         default=0,
                         type=int,
                         help='seed for initializing training. ')
-    parser.add_argument('-')
+    args = parser.parse_args()
+    wandb.login()
+    wandb.init()
+    args.project_folder = os.path.join('saved_models', wandb.run.project, wandb.run.names.project_folder)   
+    if not os.path.isdir(args.project_folder):
+        os.makedirs(args.project_folder)
+    # update the args with the sweep configurations
+    if wandb.run:
+        wandb.config.update({k: v for k, v in vars(args).items() if k not in wandb.config.as_dict()})
+        args = argparse.Namespace(**wandb.config.as_dict()) 
+    main(args)
+    
