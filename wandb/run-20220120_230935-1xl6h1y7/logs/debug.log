@@ -1,0 +1,10 @@
+2022-01-20 23:09:35,870 INFO    MainThread:14649 [wandb_setup.py:_flush():71] setting env: {}
+2022-01-20 23:09:35,871 INFO    MainThread:14649 [wandb_setup.py:_flush():71] setting login settings: {}
+2022-01-20 23:09:35,871 INFO    MainThread:14649 [wandb_setup.py:_flush():71] setting login settings: {}
+2022-01-20 23:09:35,871 INFO    MainThread:14649 [wandb_init.py:_log_setup():371] Logging user logs to /Users/ajaysridhar/Desktop/FIles/Machine-Learning/research/Sailon-Box-Dataset/wandb/run-20220120_230935-1xl6h1y7/logs/debug.log
+2022-01-20 23:09:35,871 INFO    MainThread:14649 [wandb_init.py:_log_setup():372] Logging internal logs to /Users/ajaysridhar/Desktop/FIles/Machine-Learning/research/Sailon-Box-Dataset/wandb/run-20220120_230935-1xl6h1y7/logs/debug-internal.log
+2022-01-20 23:09:35,872 INFO    MainThread:14649 [wandb_init.py:init():404] calling init triggers
+2022-01-20 23:09:35,872 INFO    MainThread:14649 [wandb_init.py:init():409] wandb.init called with sweep_config: {}
+config: {}
+2022-01-20 23:09:35,872 INFO    MainThread:14649 [wandb_init.py:init():455] wandb.init() called when a run is still active
+2022-01-20 23:09:35,874 INFO    MainThread:14649 [wandb_run.py:_config_callback():956] config_cb None None {'project_name': 'Sail-On Debugging', 'bottleneck_dim': 256, 'verb_trade_off': 0.0, 'object_trade_off': 0.0, 'train_batch_size': 32, 'eval_batch_size': 64, 'epochs': 30, 'lr': 0.01, 'momentum': 0.9, 'weight_decay': 0.001, 'workers': 4, 'print_freq': 100, 'seed': 0, 'cudnn_benchmark': True, 'project_folder': 'saved_models/Sail-On Debugging/lunar-cosmos-13'}

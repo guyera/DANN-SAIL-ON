@@ -16,7 +16,7 @@ import shutil
 import argparse
 import wandb
 import numpy as np
-from utils import accuracy, print_log
+from utils import accuracy, print_log, to_torch_batch, clean_batch
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -24,6 +24,7 @@ if torch.cuda.is_available():
     print("GPU detected")
 else:
     print("No GPU dectected, defaulting to CPU")
+
 
 def custom_collate(batch):
     subject_images = []
@@ -48,7 +49,7 @@ def custom_collate(batch):
 def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor: Featurizer, classify_heads: List[Featurizer], optimizers: List[SGD]):
     subject_classifier, verb_discriminator, object_discriminator = classify_heads
     featurizer_opt, subject_opt, verb_opt, object_opt = optimizers
-    
+
     feature_extractor.train()
     for head in classify_heads:
         head.train()
@@ -61,14 +62,17 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
     count = 0
 
     for subject_images, verb_images, object_images, spatial_encodings, subject_labels, verb_labels, object_labels in train_loader:
-        subject_images = subject_images.to(device)
-        verb_images = verb_images.to(device)
-        object_images = object_images.to(device)
-        subject_labels = subject_labels.to(device)
-        verb_labels = verb_labels.to(device)
-        object_labels = object_labels.to(device)
+        clean_batch(subject_images, verb_images, object_images,
+                    subject_labels, verb_labels, object_labels)
+        subject_images = to_torch_batch(subject_images, device)
+        verb_images = to_torch_batch(verb_images, device)
+        object_images = to_torch_batch(object_images, device)
+        subject_labels = to_torch_batch(subject_labels, device)
+        # subject_labels = subject_labels.to(device)
+        verb_labels = to_torch_batch(verb_labels, device)
+        object_labels = to_torch_batch(object_labels, device)
 
-        '''Training with the subject images'''
+        # Training with the subject images
 
         features = feature_extractor(subject_images)
         subject_preds = subject_classifier(features)
@@ -79,7 +83,7 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
         featurizer_opt.step()
         subject_opt.step()
 
-        '''Training with the verb images'''
+        # Training with the verb images
 
         features = feature_extractor(verb_images)
         verb_preds = verb_discriminator(features)
@@ -90,7 +94,7 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
         featurizer_opt.step()
         verb_opt.step()
 
-        '''Training with the object images'''
+        # Training with the object images
 
         features = feature_extractor(object_images)
         object_preds = object_discriminator(features)
@@ -101,7 +105,7 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
         featurizer_opt.step()
         object_opt.step()
 
-        '''Logging losses and accuracies'''
+        # Logging losses and accuracies
 
         subject_losses.append(subject_loss)
         verb_losses.append(verb_losses)
@@ -117,13 +121,15 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
 
         if count % args.print_freq == 0:
             print(f"Results from training batch {count}: ")
-            print(f"Subject: Loss = {subject_loss}, Accuracy = {subject_accuracy}%")
+            print(
+                f"Subject: Loss = {subject_loss}, Accuracy = {subject_accuracy}%")
             print(f"Verb: Loss = {verb_loss}, Accuracy = {verb_accuracy}%")
-            print(f"Object: Loss = {object_loss}, Accuracy = {object_accuracy}%")
+            print(
+                f"Object: Loss = {object_loss}, Accuracy = {object_accuracy}%")
             print('\n')
-        
+
         count += 1
-    
+
     subject_losses = np.array(subject_losses)
     verb_losses = np.array(verb_losses)
     object_losses = np.array(object_losses)
@@ -131,12 +137,11 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
     subject_accuracies = np.array(subject_accuracies)
     verb_accuracies = np.array(verb_accuracies)
     object_accuracies = np.array(object_accuracies)
-    
+
     train_log.update({
         "Subject Classification Loss (Training Set)": subject_losses.mean(),
         "Verb Classification Loss (Training Set)": verb_losses.mean(),
         "Object Classification Loss (Training Set)": object_losses.mean(),
-
         "Subject Classification Accuracy (Training Set)": subject_accuracies.mean(),
         "Verb Classification Accuracy (Training Set)": verb_accuracies.mean(),
         "Object Classification Accuracy (Training Set)": object_accuracies.mean(),
@@ -145,9 +150,9 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
     return train_log
 
 
-def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor: Featurizer, classify_heads: List[Featurizer], dataset_type: Optional[str] ='Validaton'):
+def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor: Featurizer, classify_heads: List[Featurizer], dataset_type: Optional[str] = 'Validaton'):
     subject_classifier, verb_discriminator, object_discriminator = classify_heads
-    
+
     feature_extractor.eval()
     for head in classify_heads:
         head.eval()
@@ -194,9 +199,11 @@ def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor
 
             if count % args.print_freq == 0:
                 print(f"Results from {dataset_type} batch {count}: ")
-                print(f"Subject: Loss = {subject_loss}, Accuracy = {subject_accuracy}%")
+                print(
+                    f"Subject: Loss = {subject_loss}, Accuracy = {subject_accuracy}%")
                 print(f"Verb: Loss = {verb_loss}, Accuracy = {verb_accuracy}%")
-                print(f"Object: Loss = {object_loss}, Accuracy = {object_accuracy}%")
+                print(
+                    f"Object: Loss = {object_loss}, Accuracy = {object_accuracy}%")
                 print('\n')
 
             count += 1
@@ -218,14 +225,17 @@ def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor
         f"Verb Classification Accuracy ({dataset_type} Set)": verb_accuracies.mean(),
         f"Object Classification Accuracy ({dataset_type} Set)": object_accuracies.mean(),
     })
-    
+
     return val_log, subject_accuracies.mean()
+
 
 def test(args: argparse.Namespace, test_loader: DataLoader, feature_extractor: Featurizer, classify_heads: List[Featurizer], dataset_type: Optional[str] = 'Test'):
     # TODO: post-training validation
     # TODO: same evaluation as OfficeHome dataset (calibration, accuracy)
-    test_log = validate(args, test_loader, feature_extractor, classify_heads, dataset_type)
-    return test_log 
+    test_log = validate(args, test_loader, feature_extractor,
+                        classify_heads, dataset_type)
+    return test_log
+
 
 def main(args):
 
@@ -234,55 +244,64 @@ def main(args):
     cudnn.benchmark = args.cudnn_benchmark
 
     full_dataset = SVODataset(
-        name = 'Custom',
-        data_root = 'Custom',
-        csv_path = 'Custom/annotations/dataset_v4_2_train.csv',
-        training = True
+        name='Custom',
+        data_root='Custom',
+        csv_path='Custom/annotations/dataset_v4_2_train.csv',
+        training=True,
+        max_size=224
     )
 
     train_size = int(0.8 * len(full_dataset))
     val_size = len(full_dataset) - train_size
-    train_dataset, val_dataset = torch.utils.data.random_split(full_dataset, [train_size, val_size])
+    train_dataset, val_dataset = torch.utils.data.random_split(
+        full_dataset, [train_size, val_size])
 
     test_dataset = SVODataset(
-        name = 'Custom',
-        data_root = 'Custom',
-        csv_path = 'Custom/annotations/dataset_v4_2_val.csv',
-        training = True # TODO: figure out what this is
+        name='Custom',
+        data_root='Custom',
+        csv_path='Custom/annotations/dataset_v4_2_val.csv',
+        training=True,  # TODO: figure out what this is
+        max_size=224
     )
 
     # TODO: define a image transformation to reshape the image
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
-        batch_size = args.train_batch_size,
-        shuffle = True,
-        collate_fn = custom_collate
+        batch_size=args.train_batch_size,
+        shuffle=True,
+        collate_fn=custom_collate
     )
 
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
-        batch_size = args.eval_batch_size,
-        shuffle = True,
-        collate_fn = custom_collate
+        batch_size=args.eval_batch_size,
+        shuffle=True,
+        collate_fn=custom_collate
     )
 
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
-        batch_size = args.eval_batch_size,
-        shuffle = True,
-        collate_fn = custom_collate
+        batch_size=args.eval_batch_size,
+        shuffle=True,
+        collate_fn=custom_collate
     )
 
     # init weights
     backbone = resnet18(pretrained=True)
     # define gradient layer with scheduled trade-off parameter for the verb and object discriminator
     max_iters = len(train_loader) * args.epochs
-    verb_grl = WarmStartGradientReverseLayer(hi=args.verb_trade_off, max_iters=max_iters)
-    object_grl = WarmStartGradientReverseLayer(hi=args.object_trade_off, max_iters=max_iters)
-    feature_extractor = Featurizer(backbone=backbone, bottleneck_dim=args.bottleneck_dim)
-    subject_classifier = ClassifierHead(num_classes=5, bottleneck_dim=args.bottleneck_dim)
-    verb_discriminator = ClassifierHead(num_classes=8, bottleneck_dim=args.bottleneck_dim, is_discriminator=True, grl=verb_grl)
-    object_discriminator = ClassifierHead(num_classes=12, bottleneck_dim=args.bottleneck_dim, is_discriminator=True, grl=object_grl)
+    verb_grl = WarmStartGradientReverseLayer(
+        hi=args.verb_trade_off, max_iters=max_iters)
+    object_grl = WarmStartGradientReverseLayer(
+        hi=args.object_trade_off, max_iters=max_iters)
+    feature_extractor = Featurizer(
+        backbone=backbone, bottleneck_dim=args.bottleneck_dim)
+    subject_classifier = ClassifierHead(
+        num_classes=5, bottleneck_dim=args.bottleneck_dim)
+    verb_discriminator = ClassifierHead(
+        num_classes=8, bottleneck_dim=args.bottleneck_dim, is_discriminator=True, grl=verb_grl)
+    object_discriminator = ClassifierHead(
+        num_classes=12, bottleneck_dim=args.bottleneck_dim, is_discriminator=True, grl=object_grl)
 
     # move all nets to device
     feature_extractor = feature_extractor.to(device)
@@ -292,54 +311,57 @@ def main(args):
 
     # optimizers
     featurizer_opt = SGD(feature_extractor.get_parameters(),
-                        args.lr,
-                        momentum=args.momentum,
-                        weight_decay=args.weight_decay,
-                        nesterov=True)
+                         args.lr,
+                         momentum=args.momentum,
+                         weight_decay=args.weight_decay,
+                         nesterov=True)
 
     subject_opt = SGD(subject_classifier.get_parameters(),
-                    args.lr,
-                    momentum=args.momentum,
-                    weight_decay=args.weight_decay,
-                    nesterov=True)
+                      args.lr,
+                      momentum=args.momentum,
+                      weight_decay=args.weight_decay,
+                      nesterov=True)
 
     verb_opt = SGD(verb_discriminator.get_parameters(),
-                    args.lr,
-                    momentum=args.momentum,
-                    weight_decay=args.weight_decay,
-                    nesterov=True)
+                   args.lr,
+                   momentum=args.momentum,
+                   weight_decay=args.weight_decay,
+                   nesterov=True)
 
     object_opt = SGD(object_discriminator.get_parameters(),
-                    args.lr,
-                    momentum=args.momentum,
-                    weight_decay=args.weight_decay,
-                    nesterov=True)
-    
-    
-    classify_heads = [subject_classifier, verb_discriminator, object_discriminator]
+                     args.lr,
+                     momentum=args.momentum,
+                     weight_decay=args.weight_decay,
+                     nesterov=True)
+
+    classify_heads = [subject_classifier,
+                      verb_discriminator, object_discriminator]
     optimizers = [featurizer_opt, subject_opt, verb_opt, object_opt]
     best_acc = 0.0
-    best_epoch = 0   
-    latest_path = os.path.join(args.project_folder , 'latest')
-    best_path = os.path.join(args.project_folder , 'best')
+    best_epoch = 0
+    latest_path = os.path.join(args.project_folder, 'latest')
+    best_path = os.path.join(args.project_folder, 'best')
     module_names = ['featurizer', 'subject', 'verb', 'object']
-    
+
     print("######## STARTING TRAINING LOOP #########")
     for epoch in range(args.epochs):
         print(f"Starting epoch {epoch}")
-        train_log = train(args, train_loader, feature_extractor, classify_heads, optimizers)
+        train_log = train(args, train_loader, feature_extractor,
+                          classify_heads, optimizers)
         print(f"Epoch {epoch} Training Results")
         wandb.log(train_log)
         print_log(train_log)
 
-        val_log, acc = validate(args, val_loader, feature_extractor, classify_heads)
+        val_log, acc = validate(
+            args, val_loader, feature_extractor, classify_heads)
         print(f"Epoch {epoch} Validation Results")
         wandb.log(val_log)
         print_log(val_log)
 
-        # save the latest module  
+        # save the latest module
         for module_name in module_names:
-            torch.save(feature_extractor.state_dict(), os.path.join(latest_path, f'{module_name}.pth'))
+            torch.save(feature_extractor.state_dict(),
+                       os.path.join(latest_path, f'{module_name}.pth'))
 
         if acc > best_acc:
             best_epoch = epoch
@@ -350,25 +372,29 @@ def main(args):
                     os.path.join(latest_path, f'{module_name}.pth'),
                     os.path.join(best_path, f'{module_name}.pth'),
                 )
+    wandb.log({'best training epoch': best_epoch})
     print("######## ENDING TRAINING LOOP #########\n")
-
 
     print("######## STARTING EVALUATION #########")
     # Load the best model for evaluation
     for module, module_name in ([feature_extractor] + classify_heads), module_names:
         module.load_state_dict(
             torch.load(os.path.join(best_path, f'{module_name}.pth')))
-    test_log, test_acc = test(args, test_loader, feature_extractor, classify_heads)
+    test_log, test_acc = test(
+        args, test_loader, feature_extractor, classify_heads)
     wandb.log(test_log)
     print_log(test_log)
     print("######## ENDING EVALUATION #########\n")
     wandb.finish()
 
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Application of DANN on the Sail-On dataset')
+    parser.add_argument('--project-name',
+                        default='DANN for Sail-On dataset',
+                        type=str,
+                        help='name of the project that appear on wandb.ai dashboard')
     parser.add_argument('--bottleneck-dim',
                         default=256,
                         type=int,
@@ -441,13 +467,14 @@ if __name__ == '__main__':
                         help='flag for torch.cudnn_benchmark')
     args = parser.parse_args()
     wandb.login()
-    wandb.init()
-    args.project_folder = os.path.join('saved_models', wandb.run.project, wandb.run.name)   
+    wandb.init(wandb.init(project=args.project_name))
+    args.project_folder = os.path.join(
+        'saved_models', wandb.run.project, wandb.run.name)
     if not os.path.isdir(args.project_folder):
         os.makedirs(args.project_folder)
     # update the args with the sweep configurations
     if wandb.run:
-        wandb.config.update({k: v for k, v in vars(args).items() if k not in wandb.config.as_dict()})
-        args = argparse.Namespace(**wandb.config.as_dict()) 
+        wandb.config.update({k: v for k, v in vars(
+            args).items() if k not in wandb.config.as_dict()})
+        args = argparse.Namespace(**wandb.config.as_dict())
     main(args)
-    

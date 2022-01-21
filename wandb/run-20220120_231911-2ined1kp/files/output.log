@@ -1,0 +1,33 @@
+######## STARTING TRAINING LOOP #########
+Starting epoch 0
+Results from training batch 0:
+Subject: Loss = 1.5458483695983887, Accuracy = 20.0%
+Verb: Loss = 2.2731099128723145, Accuracy = 5.0%
+Object: Loss = 2.4665441513061523, Accuracy = 15.0%
+Results from training batch 10:
+Subject: Loss = 1.6315373182296753, Accuracy = 59.09090805053711%
+Verb: Loss = 2.077744722366333, Accuracy = 4.545454502105713%
+Object: Loss = 2.46561336517334, Accuracy = 27.272727966308594%
+Results from training batch 20:
+Subject: Loss = 1.1673909425735474, Accuracy = 59.25925827026367%
+Verb: Loss = 2.075064182281494, Accuracy = 33.33333206176758%
+Object: Loss = 2.445772409439087, Accuracy = 7.407407283782959%
+Results from training batch 30:
+Subject: Loss = 1.7571887969970703, Accuracy = 61.53845977783203%
+Verb: Loss = 2.0849742889404297, Accuracy = 3.846153736114502%
+Object: Loss = 2.4616246223449707, Accuracy = 26.923076629638672%
+Results from training batch 40:
+Subject: Loss = 1.1617871522903442, Accuracy = 57.69230651855469%
+Verb: Loss = 2.083322048187256, Accuracy = 7.692307472229004%
+Object: Loss = 2.4760515689849854, Accuracy = 15.384614944458008%
+Results from training batch 50:
+Subject: Loss = 1.4705456495285034, Accuracy = 38.46154022216797%
+Verb: Loss = 2.0866169929504395, Accuracy = 15.384614944458008%
+Object: Loss = 2.478394031524658, Accuracy = 23.076923370361328%
+Results from training batch 60:
+Subject: Loss = 0.9806118011474609, Accuracy = 72.0%
+Verb: Loss = 2.0843141078948975, Accuracy = 20.0%
+Object: Loss = 2.4764952659606934, Accuracy = 16.0%
+Results from training batch 70:
+Subject: Loss = 1.1412324905395508, Accuracy = 57.69230651855469%
+Verb: Loss = 2.078970193862915, Accuracy = 11.538461685180664%

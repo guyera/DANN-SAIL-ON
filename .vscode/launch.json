@@ -19,10 +19,13 @@
             "program": "/Users/ajaysridhar/Desktop/FIles/Machine-Learning/research/Sailon-Box-Dataset/dann/sailon_dann.py",
             "console": "integratedTerminal",
             "args": [
+                "--project-name",
+                "Sail-On Debugging",
                 "--verb-trade-off",
                 "0",
                 "--object-trade-off",
                 "0",
+                "--print-freq","10"
             ],
             "env": {
                 "PYTHONPATH": "/Users/ajaysridhar/Desktop/FIles/Machine-Learning/research/Sailon-Box-Dataset/"

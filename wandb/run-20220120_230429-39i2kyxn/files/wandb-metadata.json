@@ -1,0 +1,29 @@
+{
+    "os": "macOS-10.15.7-x86_64-i386-64bit",
+    "python": "3.8.10",
+    "heartbeatAt": "2022-01-21T07:04:32.913325",
+    "startedAt": "2022-01-21T07:04:29.179476",
+    "docker": null,
+    "cpu_count": 12,
+    "cuda": null,
+    "args": [
+        "--project-name",
+        "Sail-On Debugging",
+        "--verb-trade-off",
+        "0",
+        "--object-trade-off",
+        "0"
+    ],
+    "state": "running",
+    "program": "/Users/ajaysridhar/Desktop/FIles/Machine-Learning/research/Sailon-Box-Dataset/dann/sailon_dann.py",
+    "codePath": "dann/sailon_dann.py",
+    "git": {
+        "remote": "git@github.com:guyera/Sailon-Box-Dataset.git",
+        "commit": "beef2224b6a72b64af2b9e157763e0fc586ba308"
+    },
+    "email": "ajaysridhar@berkeley.edu",
+    "root": "/Users/ajaysridhar/Desktop/FIles/Machine-Learning/research/Sailon-Box-Dataset",
+    "host": "ajays-mbp-2.lan",
+    "username": "ajaysridhar",
+    "executable": "/Users/ajaysridhar/anaconda3/envs/research/bin/python"
+}
