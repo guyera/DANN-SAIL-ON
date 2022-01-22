@@ -108,8 +108,8 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
         # Logging losses and accuracies
 
         subject_losses.append(subject_loss.item())
-        verb_losses.append(verb_losses.item())
-        object_losses.append(object_losses.item())
+        verb_losses.append(verb_loss.item())
+        object_losses.append(object_loss.item)
 
         subject_accuracy = accuracy(subject_preds, subject_labels)
         verb_accuracy = accuracy(verb_preds, verb_labels)
