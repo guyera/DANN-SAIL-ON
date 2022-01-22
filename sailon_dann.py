@@ -68,7 +68,6 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
         verb_images = to_torch_batch(verb_images, device)
         object_images = to_torch_batch(object_images, device)
         subject_labels = to_torch_batch(subject_labels, device)
-        # subject_labels = subject_labels.to(device)
         verb_labels = to_torch_batch(verb_labels, device)
         object_labels = to_torch_batch(object_labels, device)
 
@@ -167,11 +166,14 @@ def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor
     with torch.no_grad():
         for subject_images, verb_images, object_images, spatial_encodings, subject_labels, verb_labels, object_labels in val_loader:
             subject_images = subject_images.to(device)
-            verb_images = verb_images.to(device)
-            object_images = object_images.to(device)
-            subject_labels = subject_labels.to(device)
-            verb_labels = verb_labels.to(device)
-            object_labels = object_labels.to(device)
+            clean_batch(subject_images, verb_images, object_images,
+                        subject_labels, verb_labels, object_labels)
+            subject_images = to_torch_batch(subject_images, device)
+            verb_images = to_torch_batch(verb_images, device)
+            object_images = to_torch_batch(object_images, device)
+            subject_labels = to_torch_batch(subject_labels, device)
+            verb_labels = to_torch_batch(verb_labels, device)
+            object_labels = to_torch_batch(object_labels, device)
 
             subject_features = feature_extractor(subject_images)
             verb_features = feature_extractor(verb_images)
