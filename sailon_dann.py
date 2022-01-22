@@ -342,6 +342,10 @@ def main(args):
     best_epoch = 0
     latest_path = os.path.join(args.project_folder, 'latest')
     best_path = os.path.join(args.project_folder, 'best')
+    if not os.path.isdir(latest_path):
+        os.makedirs(latest_path)
+    if not os.path.isdir(best_path):
+        os.makedirs(best_path)
     module_names = ['featurizer', 'subject', 'verb', 'object']
 
     print("######## STARTING TRAINING LOOP #########")
@@ -361,6 +365,7 @@ def main(args):
 
         # save the latest module
         for module_name in module_names:
+
             torch.save(feature_extractor.state_dict(),
                        os.path.join(latest_path, f'{module_name}.pth'))
 
