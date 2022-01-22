@@ -17,6 +17,7 @@ def accuracy(preds: torch.Tensor, labels: torch.Tensor) -> float:
 def print_log(log: dict):
     for key in log.keys():
         print(f"{key}: {log[key]}")
+    print()
 
 
 # torch utils

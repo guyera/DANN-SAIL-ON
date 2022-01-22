@@ -484,7 +484,8 @@ if __name__ == '__main__':
             args).items() if k not in wandb.config.as_dict()})
         args = argparse.Namespace(**wandb.config.as_dict())
 
-    print("DISPLAY ARGS")
+    print("######## DISPLAY ARGS #########")
     print(args)
+    print("######## END DISPLAY #########\n")
 
     main(args)
