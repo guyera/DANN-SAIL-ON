@@ -189,9 +189,9 @@ def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor
             verb_accuracy = accuracy(verb_preds, verb_labels)
             object_accuracy = accuracy(object_preds, object_labels)
 
-            subject_losses.append(subject_loss)
-            verb_losses.append(verb_loss)
-            object_losses.append(object_loss)
+            subject_losses.append(subject_loss.item())
+            verb_losses.append(verb_loss.item())
+            object_losses.append(object_loss.item())
 
             subject_accuracies.append(subject_accuracy)
             verb_accuracies.append(verb_accuracy)
