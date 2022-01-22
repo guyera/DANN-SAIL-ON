@@ -165,7 +165,6 @@ def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor
 
     with torch.no_grad():
         for subject_images, verb_images, object_images, spatial_encodings, subject_labels, verb_labels, object_labels in val_loader:
-            subject_images = subject_images.to(device)
             clean_batch(subject_images, verb_images, object_images,
                         subject_labels, verb_labels, object_labels)
             subject_images = to_torch_batch(subject_images, device)
@@ -479,4 +478,8 @@ if __name__ == '__main__':
         wandb.config.update({k: v for k, v in vars(
             args).items() if k not in wandb.config.as_dict()})
         args = argparse.Namespace(**wandb.config.as_dict())
+
+    print("DISPLAY ARGS")
+    print(args)
+
     main(args)
