@@ -107,9 +107,9 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
 
         # Logging losses and accuracies
 
-        subject_losses.append(subject_loss)
-        verb_losses.append(verb_losses)
-        object_losses.append(object_losses)
+        subject_losses.append(subject_loss.item())
+        verb_losses.append(verb_losses.item())
+        object_losses.append(object_losses.item())
 
         subject_accuracy = accuracy(subject_preds, subject_labels)
         verb_accuracy = accuracy(verb_preds, verb_labels)
@@ -189,9 +189,9 @@ def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor
             verb_accuracy = accuracy(verb_preds, verb_labels)
             object_accuracy = accuracy(object_preds, object_labels)
 
-            subject_losses.append(subject_loss.cpu().item())
-            verb_losses.append(verb_loss.cpu().item())
-            object_losses.append(object_loss.cpu().item())
+            subject_losses.append(subject_loss.item())
+            verb_losses.append(verb_loss.item())
+            object_losses.append(object_loss.item())
 
             subject_accuracies.append(subject_accuracy)
             verb_accuracies.append(verb_accuracy)
