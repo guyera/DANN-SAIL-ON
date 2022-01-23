@@ -366,19 +366,22 @@ def main(args):
 
         # save the latest module
         for module_name in module_names:
-
-            torch.save(feature_extractor.state_dict(),
-                       os.path.join(latest_path, f'{module_name}.pth'))
+            if args.save_models:
+                print("Saving latest model...")
+                torch.save(feature_extractor.state_dict(),
+                           os.path.join(latest_path, f'{module_name}.pth'))
 
         if acc > best_acc:
             best_epoch = epoch
             best_acc = acc
             # save the best model
-            for module_name in module_names:
-                shutil.copy(
-                    os.path.join(latest_path, f'{module_name}.pth'),
-                    os.path.join(best_path, f'{module_name}.pth'),
-                )
+            if args.save_models:
+                print("Saving best model...")
+                for module_name in module_names:
+                    shutil.copy(
+                        os.path.join(latest_path, f'{module_name}.pth'),
+                        os.path.join(best_path, f'{module_name}.pth'),
+                    )
     wandb.log({'best training epoch': best_epoch})
     print("######## ENDING TRAINING LOOP #########\n")
 
@@ -472,7 +475,12 @@ if __name__ == '__main__':
                         default=True,
                         type=bool,
                         help='flag for torch.cudnn_benchmark')
+    parser.add_argument('--save-models', dest='save_models',
+                        action='store_true')
+    parser.add_argument('--no-save-models',
+                        dest='save_models', action='store_false')
     args = parser.parse_args()
+    parser.set_defaults(save_models=True)
     wandb.login()
     wandb.init(wandb.init(project=args.project_name))
     args.project_folder = os.path.join(
