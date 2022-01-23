@@ -1,5 +1,4 @@
 import torch
-import torchvision
 
 from resnet import resnet18
 from grl import GradientReverseLayer, WarmStartGradientReverseLayer
@@ -73,8 +72,8 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
 
         # TODO: display images for debugging
 
-        # for i in range(subject_images.size()[0]):
-        #     tensor_to_png(subject_images[i], f'subject{i}')
+        for i in range(subject_images.size()[0]):
+            tensor_to_png(subject_images[i], f'subject{i}')
 
         # Training with the subject images
 

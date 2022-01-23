@@ -1,6 +1,0 @@
-2022-01-20 22:50:27,027 INFO    MainThread:12248 [internal.py:wandb_internal():87] W&B internal server running at pid: 12248, started at: 2022-01-20 22:50:27.027022
-2022-01-20 22:50:27,035 DEBUG   HandlerThread:12248 [handler.py:handle_request():130] handle_request: check_version
-2022-01-20 22:50:27,036 INFO    WriterThread:12248 [datastore.py:open_for_write():77] open: /Users/ajaysridhar/Desktop/FIles/Machine-Learning/research/Sailon-Box-Dataset/wandb/run-20220120_225022-2ofkif2l/run-2ofkif2l.wandb
-2022-01-20 22:50:27,040 DEBUG   SenderThread:12248 [sender.py:send():234] send: header
-2022-01-20 22:50:27,041 DEBUG   SenderThread:12248 [sender.py:send_request():248] send_request: check_version
-2022-01-20 22:50:27,168 DEBUG   SenderThread:12248 [sender.py:send():234] send: run

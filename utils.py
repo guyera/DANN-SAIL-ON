@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from typing import List
 import torch.nn.functional as F
+import torchvision
 # import cv2
 import os
 
@@ -19,14 +20,16 @@ def accuracy(preds: torch.Tensor, labels: torch.Tensor) -> float:
 def print_log(log: dict):
     for key in log.keys():
         print(f"{key}: {log[key]}")
-    print()
 
 
 # torch utils
 
-# def tensor_to_png(image: torch.Tensor, filename: str = "image"):
-#     image = image.cpu().numpy()
-#     cv2.imwrite(image, os.path.join('some_images', filename, '.png'))
+def tensor_to_png(image: torch.Tensor, filename: str = "image"):
+    # image = image.cpu().numpy()
+    # cv2.imwrite(str(os.path.join('some_images', filename + '.png')), image.T)
+    to_pil_image = torchvision.transforms.ToPILImage()
+    pil_image = to_pil_image(image)
+    pil_image.save(str(os.path.join('some_images', filename + '.png')))
 
 
 def to_torch_batch(image_list: List[torch.Tensor], device):

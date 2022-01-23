@@ -1,5 +1,0 @@
-######## STARTING TRAINING LOOP #########
-Starting epoch 0
-Results from training batch 0:
-Subject: Loss = 1.5458483695983887, Accuracy = 20.0%
-Verb: Loss = 2.2731099128723145, Accuracy = 5.0%

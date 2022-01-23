@@ -16,7 +16,7 @@
             "type": "python",
             "request": "launch",
             "cwd": "/Users/ajaysridhar/Desktop/FIles/Machine-Learning/research/Sailon-Box-Dataset/",
-            "program": "/Users/ajaysridhar/Desktop/FIles/Machine-Learning/research/Sailon-Box-Dataset/dann/sailon_dann.py",
+            "program": "/Users/ajaysridhar/Desktop/FIles/Machine-Learning/research/Sailon-Box-Dataset/sailon_dann.py",
             "console": "integratedTerminal",
             "args": [
                 "--project-name",
@@ -25,7 +25,8 @@
                 "0",
                 "--object-trade-off",
                 "0",
-                "--print-freq","10"
+                "--print-freq",
+                "10"
             ],
             "env": {
                 "PYTHONPATH": "/Users/ajaysridhar/Desktop/FIles/Machine-Learning/research/Sailon-Box-Dataset/"
