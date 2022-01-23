@@ -6,6 +6,7 @@ from torchvision.models.detection import transform
 
 from data.data_factory import DataFactory
 
+
 def compute_spatial_encodings(
         boxes_1: List[torch.Tensor], boxes_2: List[torch.Tensor],
         shapes: List[Tuple[int, int]], eps: float = 1e-10
@@ -71,6 +72,7 @@ def compute_spatial_encodings(
         )
     return torch.cat(features)
 
+
 class HOINetworkTransform(transform.GeneralizedRCNNTransform):
     """
     Transformations for input image and target (box pairs)
@@ -129,6 +131,7 @@ class HOINetworkTransform(transform.GeneralizedRCNNTransform):
 
         return results
 
+
 class SVODataset(torch.utils.data.Dataset):
     """
     Params:
@@ -141,28 +144,29 @@ class SVODataset(torch.utils.data.Dataset):
         image_mean: As in HOINetworkTransform()
         image_std: As in HOINetworkTransform()
     """
+
     def __init__(
             self,
             name,
             data_root,
             csv_path,
             training,
-            min_size = 800,
-            max_size = 1333,
-            image_mean = None,
-            image_std = None):
+            min_size=800,
+            max_size=1333,
+            image_mean=None,
+            image_std=None):
         super().__init__()
         self.dataset = DataFactory(
-            name = name,
-            data_root = data_root,
-            csv_path = csv_path,
-            training = training)
-        
+            name=name,
+            data_root=data_root,
+            csv_path=csv_path,
+            training=training)
+
         if image_mean is None:
             image_mean = [0.485, 0.456, 0.406]
         if image_std is None:
             image_std = [0.229, 0.224, 0.225]
-        
+
         self.i_transform = HOINetworkTransform(
             min_size,
             max_size,
@@ -181,17 +185,19 @@ class SVODataset(torch.utils.data.Dataset):
             image = images.tensors[0]
             target = targets[0]
             image_size = images.image_sizes[0]
-            
+
             if detection['subject_boxes'][0][0].item() == -1:
                 detection['subject_boxes'] = None
             else:
-                detection['subject_boxes'] = transform.resize_boxes(detection['subject_boxes'], original_image_size, image_size)
-            
+                detection['subject_boxes'] = transform.resize_boxes(
+                    detection['subject_boxes'], original_image_size, image_size)
+
             if detection['object_boxes'][0][0].item() == -1:
                 detection['object_boxes'] = None
             else:
-                detection['object_boxes'] = transform.resize_boxes(detection['object_boxes'], original_image_size, image_size)
-            
+                detection['object_boxes'] = transform.resize_boxes(
+                    detection['object_boxes'], original_image_size, image_size)
+
             if target is None:
                 subject_label = None
                 object_label = None
@@ -206,61 +212,67 @@ class SVODataset(torch.utils.data.Dataset):
                 subject_label = None if raw_subject_label.item() == -1 else raw_subject_label
                 object_label = None if raw_object_label.item() == -1 else raw_object_label
                 verb_label = None if raw_subject_label.item() == -1 else raw_verb_label
-            
+
             if detection['subject_boxes'] is not None and detection['object_boxes'] is not None:
-                s_xmin, s_ymin, s_xmax, s_ymax = torch.round(detection['subject_boxes'][0]).to(torch.int)
-                o_xmin, o_ymin, o_xmax, o_ymax = torch.round(detection['object_boxes'][0]).to(torch.int)
+                s_xmin, s_ymin, s_xmax, s_ymax = torch.round(
+                    detection['subject_boxes'][0]).to(torch.int)
+                o_xmin, o_ymin, o_xmax, o_ymax = torch.round(
+                    detection['object_boxes'][0]).to(torch.int)
                 v_xmin = min(s_xmin, o_xmin)
                 v_ymin = min(s_ymin, o_ymin)
                 v_xmax = max(s_xmax, o_xmax)
                 v_ymax = max(s_ymax, o_ymax)
-                
+
                 x, y = torch.meshgrid(
                     torch.arange(1),
                     torch.arange(2)
                 )
                 x = x.flatten()
                 y = y.flatten()
-                coords = torch.cat([detection['subject_boxes'], detection['object_boxes']])
-                
+                coords = torch.cat(
+                    [detection['subject_boxes'], detection['object_boxes']])
+
                 spatial_encodings = compute_spatial_encodings(
                     [coords[x]], [coords[y]], [image_size]
                 ).detach()
-                subject_image = image[:, s_ymin : s_ymax, s_xmin : s_xmax]
-                object_image = image[:, o_ymin : o_ymax, o_xmin : o_xmax]
-                verb_image = image[:, v_ymin : v_ymax, v_xmin : v_xmax]
+                subject_image = image[:, s_ymin: s_ymax, s_xmin: s_xmax]
+                object_image = image[:, o_ymin: o_ymax, o_xmin: o_xmax]
+                verb_image = image[:, v_ymin: v_ymax, v_xmin: v_xmax]
             elif detection['subject_boxes'] is not None:
-                s_xmin, s_ymin, s_xmax, s_ymax = torch.round(detection['subject_boxes'][0]).to(torch.int)
+                s_xmin, s_ymin, s_xmax, s_ymax = torch.round(
+                    detection['subject_boxes'][0]).to(torch.int)
                 v_xmin = s_xmin
                 v_ymin = s_ymin
                 v_xmax = s_xmax
                 v_ymax = s_ymax
-                
+
                 x, y = torch.meshgrid(
                     torch.arange(1),
                     torch.arange(2)
                 )
                 x = x.flatten()
                 y = y.flatten()
-                coords = torch.cat([detection['subject_boxes'], detection['subject_boxes']])
-                
+                coords = torch.cat(
+                    [detection['subject_boxes'], detection['subject_boxes']])
+
                 spatial_encodings = compute_spatial_encodings(
                     [coords[x]], [coords[y]], [image_size]
                 ).detach()
-                subject_image = image[:, s_ymin : s_ymax, s_xmin : s_xmax]
+                subject_image = image[:, s_ymin: s_ymax, s_xmin: s_xmax]
                 object_image = None
-                verb_image = image[:, v_ymin : v_ymax, v_xmin : v_xmax]
+                verb_image = image[:, v_ymin: v_ymax, v_xmin: v_xmax]
             elif detection['object_boxes'] is not None:
-                o_xmin, o_ymin, o_xmax, o_ymax = torch.round(detection['object_boxes'][0]).to(torch.int)
-                
+                o_xmin, o_ymin, o_xmax, o_ymax = torch.round(
+                    detection['object_boxes'][0]).to(torch.int)
+
                 spatial_encodings = None
                 subject_image = None
-                object_image = image[:, o_ymin : o_ymax, o_xmin : o_xmax]
+                object_image = image[:, o_ymin: o_ymax, o_xmin: o_xmax]
                 verb_image = None
             else:
                 spatial_encodings = None
                 subject_image = None
                 object_image = None
                 verb_image = None
-            
+
             return subject_image, verb_image, object_image, spatial_encodings, subject_label, verb_label, object_label

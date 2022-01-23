@@ -70,13 +70,7 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
         verb_labels = to_torch_batch(verb_labels, device)
         object_labels = to_torch_batch(object_labels, device)
 
-        # TODO: display images for debugging
-
-        for i in range(subject_images.size()[0]):
-            tensor_to_png(subject_images[i], f'subject{i}')
-
         # Training with the subject images
-
         features = feature_extractor(subject_images)
         subject_preds = subject_classifier(features)
         subject_loss = F.cross_entropy(subject_preds, subject_labels)
@@ -253,7 +247,8 @@ def main(args):
         data_root='Custom',
         csv_path='Custom/annotations/dataset_v4_2_train.csv',
         training=True,
-        max_size=224
+        # max_size=224,
+        # min_size=224,
     )
 
     train_size = int(0.8 * len(full_dataset))
@@ -266,7 +261,6 @@ def main(args):
         data_root='Custom',
         csv_path='Custom/annotations/dataset_v4_2_val.csv',
         training=True,  # TODO: figure out what this is
-        max_size=224
     )
 
     # TODO: define a image transformation to reshape the image
