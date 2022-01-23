@@ -71,9 +71,10 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
         verb_labels = to_torch_batch(verb_labels, device)
         object_labels = to_torch_batch(object_labels, device)
 
-        # display images
-        for i in range(subject_images.size()[0]):
-            tensor_to_png(subject_images[i], f'subject{i}')
+        # TODO: display images for debugging
+
+        # for i in range(subject_images.size()[0]):
+        #     tensor_to_png(subject_images[i], f'subject{i}')
 
         # Training with the subject images
 
