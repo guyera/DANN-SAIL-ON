@@ -1,3 +1,7 @@
 Custom/*
 saved_models/*
 .vscode/*
+wandb/*
+some_images/*
+example.py
+eda.ipynb

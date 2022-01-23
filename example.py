@@ -3,6 +3,7 @@ import torchvision
 
 from data.svodataset import SVODataset
 
+
 def custom_collate(batch):
     subject_images = []
     verb_images = []
@@ -22,18 +23,19 @@ def custom_collate(batch):
 
     return subject_images, verb_images, object_images, spatial_encodings, subject_labels, verb_labels, object_labels
 
+
 dataset = SVODataset(
-    name = 'Custom',
-    data_root = 'Custom',
-    csv_path = 'Custom/annotations/dataset_v4_2_train.csv',
-    training = True
+    name='Custom',
+    data_root='Custom',
+    csv_path='Custom/annotations/dataset_v4_2_train.csv',
+    training=True
 )
 
 data_loader = torch.utils.data.DataLoader(
     dataset,
-    batch_size = 16,
-    shuffle = True,
-    collate_fn = custom_collate
+    batch_size=16,
+    shuffle=True,
+    collate_fn=custom_collate
 )
 
 for subject_images, verb_images, object_images, spatial_encodings, subject_labels, verb_labels, object_labels in data_loader:
@@ -52,21 +54,21 @@ for subject_images, verb_images, object_images, spatial_encodings, subject_label
             print(f'Verb label shape: {verb_label.shape}')
         if object_label is not None:
             print(f'Object label shape: {object_label.shape}')
-    
+
     for subject_image, verb_image, object_image, spatial_encoding, subject_label, verb_label, object_label in zip(subject_images, verb_images, object_images, spatial_encodings, subject_labels, verb_labels, object_labels):
         if subject_image is not None and verb_image is not None and object_image is not None:
             to_pil_image = torchvision.transforms.ToPILImage()
             subject_image_pil = to_pil_image(subject_image)
             verb_image_pil = to_pil_image(verb_image)
             object_image_pil = to_pil_image(object_image)
-            subject_image_pil.save('subject_example_image.jpg')
-            verb_image_pil.save('verb_example_image.jpg')
-            object_image_pil.save('object_example_image.jpg')
+            subject_image_pil.save('some_images/subject_example_image.jpg')
+            verb_image_pil.save('some_images/verb_example_image.jpg')
+            object_image_pil.save('some_images/object_example_image.jpg')
             # NOTE: These example images will look corrupted. That's because
             # they're standardized to have mean 0 std 1 for each color channel,
             # and PIL isn't aware of this, so it has no way of "unstandardizing"
             # them to get the raw pixel data. But you can generally still make
             # out the content of the images to some extent
             break
-    
+
     break

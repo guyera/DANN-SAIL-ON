@@ -16,7 +16,7 @@ import shutil
 import argparse
 import wandb
 import numpy as np
-from utils import accuracy, print_log, to_torch_batch, clean_batch
+from utils import *
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -70,6 +70,10 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
         subject_labels = to_torch_batch(subject_labels, device)
         verb_labels = to_torch_batch(verb_labels, device)
         object_labels = to_torch_batch(object_labels, device)
+
+        # display images
+        for i in range(subject_images.size()[0]):
+            tensor_to_png(subject_images[i], f'subject{i}')
 
         # Training with the subject images
 
@@ -348,20 +352,23 @@ def main(args):
         os.makedirs(best_path)
     module_names = ['featurizer', 'subject', 'verb', 'object']
 
-    print("######## STARTING TRAINING LOOP #########")
+    print("\n######## STARTING TRAINING LOOP #########")
     for epoch in range(args.epochs):
-        print(f"Starting epoch {epoch}")
+        print(f"\n######## START TRAINING FOR EPOCH {epoch} #########")
         train_log = train(args, train_loader, feature_extractor,
                           classify_heads, optimizers)
         print(f"Epoch {epoch} Training Results")
         wandb.log(train_log)
         print_log(train_log)
+        print(f"######## END TRAINING FOR EPOCH {epoch} #########\n")
 
+        print(f"\n######## START VALIDATION FOR EPOCH {epoch} #########")
         val_log, acc = validate(
             args, val_loader, feature_extractor, classify_heads)
         print(f"Epoch {epoch} Validation Results")
         wandb.log(val_log)
         print_log(val_log)
+        print(f"######## END VALIDATION FOR EPOCH {epoch} #########\n")
 
         # save the latest module
         for module_name in module_names:
@@ -381,9 +388,9 @@ def main(args):
     wandb.log({'best training epoch': best_epoch})
     print("######## ENDING TRAINING LOOP #########\n")
 
-    print("######## STARTING EVALUATION #########")
+    print("\n######## STARTING EVALUATION #########")
     # Load the best model for evaluation
-    for module, module_name in ([feature_extractor] + classify_heads), module_names:
+    for module, module_name in zip(([feature_extractor] + classify_heads), module_names):
         module.load_state_dict(
             torch.load(os.path.join(best_path, f'{module_name}.pth')))
     test_log, test_acc = test(

@@ -2,6 +2,8 @@ import torch
 import numpy as np
 from typing import List
 import torch.nn.functional as F
+# import cv2
+import os
 
 RESNET_INPUT_SIZE = 224
 
@@ -21,6 +23,11 @@ def print_log(log: dict):
 
 
 # torch utils
+
+# def tensor_to_png(image: torch.Tensor, filename: str = "image"):
+#     image = image.cpu().numpy()
+#     cv2.imwrite(image, os.path.join('some_images', filename, '.png'))
+
 
 def to_torch_batch(image_list: List[torch.Tensor], device):
     images = torch.stack(image_list)
