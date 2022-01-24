@@ -300,13 +300,8 @@ def main(args):
     object_grl = WarmStartGradientReverseLayer(
         hi=args.object_trade_off, max_iters=max_iters)
 
-    if args.finetune:
-        backbone_lr = 0.1
-    else:
-        backbone_lr = 1.
-
     feature_extractor = Featurizer(
-        backbone=backbone, backbone_lr=backbone_lr, bottleneck_dim=args.bottleneck_dim)
+        backbone=backbone, bottleneck_dim=args.bottleneck_dim)
     subject_classifier = ClassifierHead(
         head=subject_head, num_classes=NUM_SUBJECTS, bottleneck_dim=args.bottleneck_dim)
     verb_discriminator = ClassifierHead(
@@ -323,8 +318,13 @@ def main(args):
     # print(feature_extractor.backbone)
     # print(feature_extractor.bottleneck)
 
+    if args.finetune:
+        backbone_lr = 0.1
+    else:
+        backbone_lr = 1.
+
     # optimizers
-    featurizer_opt = SGD(feature_extractor.get_parameters(),
+    featurizer_opt = SGD(feature_extractor.get_parameters(backbone_lr=backbone_lr),
                          args.lr,
                          momentum=args.momentum,
                          weight_decay=args.weight_decay,
