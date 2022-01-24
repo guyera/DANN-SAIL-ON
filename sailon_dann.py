@@ -290,7 +290,6 @@ def main(args):
         nn.Linear(args.bottleneck_dim, args.hidden_size),
         nn.ReLU(),
         nn.Linear(args.hidden_size, NUM_SUBJECTS),
-        nn.ReLU()
     )
     # define gradient layer with scheduled trade-off parameter for the verb and object discriminator
     max_iters = len(train_loader) * args.epochs
