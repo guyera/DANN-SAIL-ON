@@ -66,7 +66,7 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
 
     for subject_images, verb_images, object_images, spatial_encodings, subject_labels, verb_labels, object_labels in train_loader:
         clean_batch(subject_images, verb_images, object_images,
-                    subject_labels, verb_labels, object_labels, 
+                    subject_labels, verb_labels, object_labels,
                     keep_novel_subject=args.novel_category)
         subject_images = to_torch_batch(subject_images, device)
         verb_images = to_torch_batch(verb_images, device)
@@ -412,7 +412,7 @@ def main(args):
     # Load the best model for evaluation
     for module, module_name in zip(([feature_extractor] + classify_heads), module_names):
         module.load_state_dict(
-            torch.load(os.path.join(best_path, f'{module_name}.pth')))
+            torch.load(os.path.join(best_path, f'{module_name}.pth')), map_location='cpu')
     test_log, test_acc = test(
         args, test_loader, feature_extractor, classify_heads)
     wandb.log(test_log)

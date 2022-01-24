@@ -5,3 +5,4 @@ wandb/*
 some_images/*
 example.py
 eda.ipynb
+_pycache_/
