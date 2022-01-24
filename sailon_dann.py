@@ -1,5 +1,5 @@
 import torch
-
+import torch.nn as nn
 from resnet import resnet18
 from grl import GradientReverseLayer, WarmStartGradientReverseLayer
 from data.svodataset import SVODataset
@@ -16,6 +16,10 @@ import argparse
 import wandb
 import numpy as np
 from utils import *
+
+NUM_SUBJECTS = 5
+NUM_VERBS = 8
+NUM_OBJECTS = 12
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -81,7 +85,6 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
         subject_opt.step()
 
         # Training with the verb images
-
         features = feature_extractor(verb_images)
         verb_preds = verb_discriminator(features)
         verb_loss = F.cross_entropy(verb_preds, verb_labels)
@@ -92,7 +95,6 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
         verb_opt.step()
 
         # Training with the object images
-
         features = feature_extractor(object_images)
         object_preds = object_discriminator(features)
         object_loss = F.cross_entropy(object_preds, object_labels)
@@ -103,7 +105,6 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
         object_opt.step()
 
         # Logging losses and accuracies
-
         subject_losses.append(subject_loss.item())
         verb_losses.append(verb_loss.item())
         object_losses.append(object_loss.item())
@@ -137,17 +138,17 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
 
     train_log.update({
         "Subject Classification Loss (Training Set)": subject_losses.mean(),
-        "Verb Classification Loss (Training Set)": verb_losses.mean(),
-        "Object Classification Loss (Training Set)": object_losses.mean(),
         "Subject Classification Accuracy (Training Set)": subject_accuracies.mean(),
+        "Verb Classification Loss (Training Set)": verb_losses.mean(),
         "Verb Classification Accuracy (Training Set)": verb_accuracies.mean(),
+        "Object Classification Loss (Training Set)": object_losses.mean(),
         "Object Classification Accuracy (Training Set)": object_accuracies.mean(),
     })
 
     return train_log
 
 
-def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor: Featurizer, classify_heads: List[Featurizer], dataset_type: Optional[str] = 'Validaton'):
+def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor: Featurizer, classify_heads: List[Featurizer], dataset_type: Optional[str] = 'Validation'):
     subject_classifier, verb_discriminator, object_discriminator = classify_heads
 
     feature_extractor.eval()
@@ -217,11 +218,10 @@ def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor
 
     val_log.update({
         f"Subject Classification Loss ({dataset_type} Set)": subject_losses.mean(),
-        f"Verb Classification Loss ({dataset_type} Set)": verb_losses.mean(),
-        f"Object Classification Loss ({dataset_type} Set)": object_losses.mean(),
-
         f"Subject Classification Accuracy ({dataset_type} Set)": subject_accuracies.mean(),
+        f"Verb Classification Loss ({dataset_type} Set)": verb_losses.mean(),
         f"Verb Classification Accuracy ({dataset_type} Set)": verb_accuracies.mean(),
+        f"Object Classification Loss ({dataset_type} Set)": object_losses.mean(),
         f"Object Classification Accuracy ({dataset_type} Set)": object_accuracies.mean(),
     })
 
@@ -247,8 +247,6 @@ def main(args):
         data_root='Custom',
         csv_path='Custom/annotations/dataset_v4_2_train.csv',
         training=True,
-        # max_size=224,
-        # min_size=224,
     )
 
     train_size = int(0.8 * len(full_dataset))
@@ -287,6 +285,13 @@ def main(args):
 
     # init weights
     backbone = resnet18(pretrained=True)
+    # define head
+    subject_head = nn.Sequential(
+        nn.Linear(args.bottleneck_dim, args.hidden_size),
+        nn.ReLU(),
+        nn.Linear(args.hidden_size, NUM_SUBJECTS),
+        nn.ReLU()
+    )
     # define gradient layer with scheduled trade-off parameter for the verb and object discriminator
     max_iters = len(train_loader) * args.epochs
     verb_grl = WarmStartGradientReverseLayer(
@@ -296,17 +301,20 @@ def main(args):
     feature_extractor = Featurizer(
         backbone=backbone, bottleneck_dim=args.bottleneck_dim)
     subject_classifier = ClassifierHead(
-        num_classes=5, bottleneck_dim=args.bottleneck_dim)
+        head=subject_head, num_classes=NUM_SUBJECTS, bottleneck_dim=args.bottleneck_dim)
     verb_discriminator = ClassifierHead(
-        num_classes=8, bottleneck_dim=args.bottleneck_dim, is_discriminator=True, grl=verb_grl)
+        num_classes=NUM_VERBS, bottleneck_dim=args.bottleneck_dim, is_discriminator=True, grl=verb_grl)
     object_discriminator = ClassifierHead(
-        num_classes=12, bottleneck_dim=args.bottleneck_dim, is_discriminator=True, grl=object_grl)
+        num_classes=NUM_OBJECTS, bottleneck_dim=args.bottleneck_dim, is_discriminator=True, grl=object_grl)
 
     # move all nets to device
     feature_extractor = feature_extractor.to(device)
     subject_classifier = subject_classifier.to(device)
     verb_discriminator = verb_discriminator.to(device)
     object_discriminator = object_discriminator.to(device)
+
+    # print(feature_extractor.backbone)
+    # print(feature_extractor.bottleneck)
 
     # optimizers
     featurizer_opt = SGD(feature_extractor.get_parameters(),
@@ -409,6 +417,12 @@ if __name__ == '__main__':
                         default=256,
                         type=int,
                         help='Dimension of bottleneck')
+
+    parser.add_argument('--hidden-size',
+                        default=256,
+                        type=int,
+                        help='Dimension of the hidden layer(s) in the classifier'
+                        )
     parser.add_argument('--verb-trade-off',
                         default=1.,
                         type=float,
