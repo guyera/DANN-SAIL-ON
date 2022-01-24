@@ -66,7 +66,7 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
 
     for subject_images, verb_images, object_images, spatial_encodings, subject_labels, verb_labels, object_labels in train_loader:
         clean_batch(subject_images, verb_images, object_images,
-                    subject_labels, verb_labels, object_labels)
+                    subject_labels, verb_labels, object_labels, keep_novel_subject=args.novel_category)
         subject_images = to_torch_batch(subject_images, device)
         verb_images = to_torch_batch(verb_images, device)
         object_images = to_torch_batch(object_images, device)
@@ -166,7 +166,7 @@ def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor
     with torch.no_grad():
         for subject_images, verb_images, object_images, spatial_encodings, subject_labels, verb_labels, object_labels in val_loader:
             clean_batch(subject_images, verb_images, object_images,
-                        subject_labels, verb_labels, object_labels)
+                        subject_labels, verb_labels, object_labels, remove_novel_subject=args.novel_category)
             subject_images = to_torch_batch(subject_images, device)
             verb_images = to_torch_batch(verb_images, device)
             object_images = to_torch_batch(object_images, device)
@@ -288,11 +288,14 @@ def main(args):
     # init weights
     backbone = resnet18(pretrained=True)
     # define head
-    subject_head = nn.Sequential(
-        nn.Linear(args.bottleneck_dim, args.hidden_size),
-        nn.ReLU(),
-        nn.Linear(args.hidden_size, NUM_SUBJECTS),
-    )
+    subject_head = None
+    if args.hidden_size > 0:
+        subject_head = nn.Sequential(
+            nn.Linear(args.bottleneck_dim, args.hidden_size),
+            nn.ReLU(),
+            nn.Linear(args.hidden_size, NUM_SUBJECTS),
+        )
+
     # define gradient layer with scheduled trade-off parameter for the verb and object discriminator
     max_iters = len(train_loader) * args.epochs
     verb_grl = WarmStartGradientReverseLayer(
@@ -302,6 +305,9 @@ def main(args):
 
     feature_extractor = Featurizer(
         backbone=backbone, bottleneck_dim=args.bottleneck_dim)
+    num_subjects = NUM_SUBJECTS
+    if not args.novel_category:
+        num_subjects -= 1
     subject_classifier = ClassifierHead(
         head=subject_head, num_classes=NUM_SUBJECTS, bottleneck_dim=args.bottleneck_dim)
     verb_discriminator = ClassifierHead(
@@ -425,7 +431,7 @@ if __name__ == '__main__':
                         type=int,
                         help='Dimension of bottleneck')
     parser.add_argument('--hidden-size',
-                        default=256,
+                        default=-1,
                         type=int,
                         help='Dimension of the hidden layer(s) in the classifier'
                         )
@@ -506,8 +512,16 @@ if __name__ == '__main__':
                         action='store_true')
     parser.add_argument('--no-save-models',
                         dest='save_models', action='store_false')
-    args = parser.parse_args()
     parser.set_defaults(save_models=True)
+    parser.add_argument('--novel-category', dest='novel_category',
+                        help='train with novel category',
+                        action='store_true')
+    parser.add_argument('--no-novel-category', dest='novel_category',
+                        help='train with novel category',
+                        action='store_false')
+    parser.set_defaults(novel_category=False)
+    args = parser.parse_args()
+
     wandb.login()
     wandb.init(wandb.init(project=args.project_name))
     args.project_folder = os.path.join(

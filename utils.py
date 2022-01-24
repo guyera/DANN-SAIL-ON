@@ -63,7 +63,8 @@ def resize_and_pad(image: torch.Tensor, min_limit: int = 224, max_limit: int = 2
     return image
 
 
-def clean_batch(subject_images: List[torch.Tensor], verb_images: List[torch.Tensor], object_images: List[torch.Tensor], subject_labels: List[torch.Tensor], verb_labels: List[torch.Tensor], object_labels: List[torch.Tensor], min_limit: int = 224, max_limit: int = 224, pad_to: int = 224):
+def clean_batch(subject_images: List[torch.Tensor], verb_images: List[torch.Tensor], object_images: List[torch.Tensor], subject_labels: List[torch.Tensor], verb_labels: List[torch.Tensor], object_labels: List[torch.Tensor], keep_novel_subject: bool = False, min_limit: int = 224, max_limit: int = 224, pad_to: int = 224):
+    # TODO: consider removing other novel categories (verbs, objects)
     '''
     Mutatively remove all of the none types from the batches and add padding to 
     fit 224x224 image size for the resent18 backbone
@@ -72,7 +73,15 @@ def clean_batch(subject_images: List[torch.Tensor], verb_images: List[torch.Tens
         subject_labels) == len(verb_labels) == len(object_labels)
     i = 0
     while i < len(subject_images):
-        if subject_images[i] is None or verb_images[i] is None or object_images[i] is None:
+        remove = subject_images[i] is None or verb_images[i] is None or object_images[i] is None
+
+        # since novel category is 0
+        if not keep_novel_subject:
+            remove = remove or subject_labels[i] == 0
+            if subject_labels[i] is not None:
+                subject_labels[i] -= 1
+
+        if remove:
             subject_images.pop(i)
             verb_images.pop(i)
             object_images.pop(i)
