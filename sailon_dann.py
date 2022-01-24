@@ -120,11 +120,11 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
         if count % args.print_freq == 0:
             print(f"Results from training batch {count}: ")
             print(
-                f"Subject: Loss = {round(subject_loss.item(), 2)}, Accuracy = {round(subject_accuracy.item(), 2)}%")
+                f"Subject: Loss = {round(subject_loss.item(), 2)}, Accuracy = {round(subject_accuracy, 2)}%")
             print(
-                f"Verb: Loss = {round(verb_loss.item(), 2)}, Accuracy = {round(verb_accuracy.item(), 2)}%")
+                f"Verb: Loss = {round(verb_loss.item(), 2)}, Accuracy = {round(verb_accuracy, 2)}%")
             print(
-                f"Object: Loss = {round(object_loss.item(), 2)}, Accuracy = {round(object_accuracy.item(), 2)}%")
+                f"Object: Loss = {round(object_loss.item(), 2)}, Accuracy = {round(object_accuracy, 2)}%")
             print('\n')
 
         count += 1
@@ -201,11 +201,11 @@ def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor
             if count % args.print_freq == 0:
                 print(f"Results from {dataset_type} batch {count}: ")
                 print(
-                    f"Subject: Loss = {round(subject_loss.item(), 2)}, Accuracy = {round(subject_accuracy.item(), 2)}%")
+                    f"Subject: Loss = {round(subject_loss.item(), 2)}, Accuracy = {round(subject_accuracy, 2)}%")
                 print(
-                    f"Verb: Loss = {round(verb_loss.item(), 2)}, Accuracy = {round(verb_accuracy.item(), 2)}%")
+                    f"Verb: Loss = {round(verb_loss.item(), 2)}, Accuracy = {round(verb_accuracy, 2)}%")
                 print(
-                    f"Object: Loss = {round(object_loss.item(), 2)}, Accuracy = {round(object_accuracy.item(), 2)}%")
+                    f"Object: Loss = {round(object_loss.item(), 2)}, Accuracy = {round(object_accuracy, 2)}%")
                 print('\n')
 
             count += 1
