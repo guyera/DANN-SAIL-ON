@@ -120,10 +120,11 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
         if count % args.print_freq == 0:
             print(f"Results from training batch {count}: ")
             print(
-                f"Subject: Loss = {subject_loss}, Accuracy = {subject_accuracy}%")
-            print(f"Verb: Loss = {verb_loss}, Accuracy = {verb_accuracy}%")
+                f"Subject: Loss = {round(subject_loss, 2)}, Accuracy = {round(subject_accuracy, 2)}%")
             print(
-                f"Object: Loss = {object_loss}, Accuracy = {object_accuracy}%")
+                f"Verb: Loss = {round(verb_loss, 2)}, Accuracy = {round(verb_accuracy, 2)}%")
+            print(
+                f"Object: Loss = {round(object_loss, 2)}, Accuracy = {round(object_accuracy, 2)}%")
             print('\n')
 
         count += 1
@@ -200,10 +201,11 @@ def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor
             if count % args.print_freq == 0:
                 print(f"Results from {dataset_type} batch {count}: ")
                 print(
-                    f"Subject: Loss = {subject_loss}, Accuracy = {subject_accuracy}%")
-                print(f"Verb: Loss = {verb_loss}, Accuracy = {verb_accuracy}%")
+                    f"Subject: Loss = {round(subject_loss, 2)}, Accuracy = {round(subject_accuracy, 2)}%")
                 print(
-                    f"Object: Loss = {object_loss}, Accuracy = {object_accuracy}%")
+                    f"Verb: Loss = {round(verb_loss, 2)}, Accuracy = {round(verb_accuracy, 2)}%")
+                print(
+                    f"Object: Loss = {round(object_loss, 2)}, Accuracy = {round(object_accuracy, 2)}%")
                 print('\n')
 
             count += 1
@@ -297,8 +299,14 @@ def main(args):
         hi=args.verb_trade_off, max_iters=max_iters)
     object_grl = WarmStartGradientReverseLayer(
         hi=args.object_trade_off, max_iters=max_iters)
+
+    if args.finetune:
+        backbone_lr = 0.1
+    else:
+        backbone_lr = 1.
+
     feature_extractor = Featurizer(
-        backbone=backbone, bottleneck_dim=args.bottleneck_dim)
+        backbone=backbone, backbone_lr=backbone_lr, bottleneck_dim=args.bottleneck_dim)
     subject_classifier = ClassifierHead(
         head=subject_head, num_classes=NUM_SUBJECTS, bottleneck_dim=args.bottleneck_dim)
     verb_discriminator = ClassifierHead(
@@ -416,7 +424,6 @@ if __name__ == '__main__':
                         default=256,
                         type=int,
                         help='Dimension of bottleneck')
-
     parser.add_argument('--hidden-size',
                         default=256,
                         type=int,
@@ -467,6 +474,13 @@ if __name__ == '__main__':
                         metavar='W',
                         help='weight decay (default: 1e-3)',
                         dest='weight_decay')
+    parser.add_argument('--finetune', dest='finetune',
+                        help='Use 0.1*lr on the backbone',
+                        action='store_true')
+    parser.add_argument('--no-finetune',
+                        help='Use backbone learns as fast as the rest of the net',
+                        dest='finetune', action='store_false')
+    parser.set_defaults(finetune=True)
     # misc.
     parser.add_argument('-j',
                         '--workers',
