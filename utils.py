@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from typing import List
+from typing import List, Optional
 import torch.nn.functional as F
 import torchvision
 import os
@@ -63,7 +63,7 @@ def resize_and_pad(image: torch.Tensor, min_limit: int = 224, max_limit: int = 2
     return image
 
 
-def clean_batch(subject_images: List[torch.Tensor], verb_images: List[torch.Tensor], object_images: List[torch.Tensor], subject_labels: List[torch.Tensor], verb_labels: List[torch.Tensor], object_labels: List[torch.Tensor], keep_novel_subject: bool = False, min_limit: int = 224, max_limit: int = 224, pad_to: int = 224):
+def clean_batch(subject_images: List[torch.Tensor], verb_images: List[torch.Tensor], object_images: List[torch.Tensor], subject_labels: List[torch.Tensor], verb_labels: List[torch.Tensor], object_labels: List[torch.Tensor], keep_novel_subject: Optional[bool] = False, min_limit: int = 224, max_limit: int = 224, pad_to: int = 224):
     # TODO: consider removing other novel categories (verbs, objects)
     '''
     Mutatively remove all of the none types from the batches and add padding to 

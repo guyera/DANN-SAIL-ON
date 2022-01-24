@@ -66,7 +66,8 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor:
 
     for subject_images, verb_images, object_images, spatial_encodings, subject_labels, verb_labels, object_labels in train_loader:
         clean_batch(subject_images, verb_images, object_images,
-                    subject_labels, verb_labels, object_labels, keep_novel_subject=args.novel_category)
+                    subject_labels, verb_labels, object_labels, 
+                    keep_novel_subject=args.novel_category)
         subject_images = to_torch_batch(subject_images, device)
         verb_images = to_torch_batch(verb_images, device)
         object_images = to_torch_batch(object_images, device)
@@ -166,7 +167,8 @@ def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor
     with torch.no_grad():
         for subject_images, verb_images, object_images, spatial_encodings, subject_labels, verb_labels, object_labels in val_loader:
             clean_batch(subject_images, verb_images, object_images,
-                        subject_labels, verb_labels, object_labels, remove_novel_subject=args.novel_category)
+                        subject_labels, verb_labels, object_labels,
+                        keep_novel_subject=args.novel_category)
             subject_images = to_torch_batch(subject_images, device)
             verb_images = to_torch_batch(verb_images, device)
             object_images = to_torch_batch(object_images, device)
