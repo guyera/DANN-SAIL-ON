@@ -1,3 +1,7 @@
+
+# ------------------------------------------------------------------------------
+# Code from THUML's Transfer Learning Library
+# ------------------------------------------------------------------------------
 from typing import Optional, Any, Tuple
 import numpy as np
 import torch.nn as nn
