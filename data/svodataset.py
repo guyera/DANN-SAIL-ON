@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 import torch
 import torchvision.ops.boxes as box_ops
-from torchvision.models.detection import transform
+from torchvision.models.detection import transform as detectiontransform
 
 from data.data_factory import DataFactory
 
@@ -73,7 +73,7 @@ def compute_spatial_encodings(
     return torch.cat(features)
 
 
-class HOINetworkTransform(transform.GeneralizedRCNNTransform):
+class HOINetworkTransform(detectiontransform.GeneralizedRCNNTransform):
     """
     Transformations for input image and target (box pairs)
 
@@ -109,9 +109,9 @@ class HOINetworkTransform(transform.GeneralizedRCNNTransform):
         if target is None:
             return image, target
 
-        target['boxes_s'] = transform.resize_boxes(target['boxes_s'],
+        target['boxes_s'] = detectiontransform.resize_boxes(target['boxes_s'],
                                                    (h, w), image.shape[-2:])
-        target['boxes_o'] = transform.resize_boxes(target['boxes_o'],
+        target['boxes_o'] = detectiontransform.resize_boxes(target['boxes_o'],
                                                    (h, w), image.shape[-2:])
 
         return image, target
@@ -122,8 +122,8 @@ class HOINetworkTransform(transform.GeneralizedRCNNTransform):
 
         for pred, im_s, o_im_s in zip(results, image_shapes, original_image_sizes):
             boxes_s, boxes_o = pred['boxes_s'], pred['boxes_o']
-            boxes_s = transform.resize_boxes(boxes_s, im_s, o_im_s)
-            boxes_o = transform.resize_boxes(boxes_o, im_s, o_im_s)
+            boxes_s = detectiontransform.resize_boxes(boxes_s, im_s, o_im_s)
+            boxes_o = detectiontransform.resize_boxes(boxes_o, im_s, o_im_s)
             pred['boxes_s'], pred['boxes_o'] = boxes_s, boxes_o
 
         if self.training:
@@ -138,7 +138,6 @@ class SVODataset(torch.utils.data.Dataset):
         name: As in data.data_factory.DataFactory()
         data_root: As in data.data_factory.DataFactory()
         csv_path: As in data.data_factory.DataFactory()
-        training: As in data.data_factory.DataFactory()
         min_size: As in HOINetworkTransform()
         max_size: As in HOINetworkTransform()
         image_mean: As in HOINetworkTransform()
@@ -150,17 +149,16 @@ class SVODataset(torch.utils.data.Dataset):
             name,
             data_root,
             csv_path,
-            training,
             min_size=800,
             max_size=1333,
             image_mean=None,
-            image_std=None):
+            image_std=None,
+            transform=None):
         super().__init__()
         self.dataset = DataFactory(
             name=name,
             data_root=data_root,
-            csv_path=csv_path,
-            training=training)
+            csv_path=csv_path)
 
         if image_mean is None:
             image_mean = [0.485, 0.456, 0.406]
@@ -173,6 +171,8 @@ class SVODataset(torch.utils.data.Dataset):
             image_mean,
             image_std
         )
+
+        self.transform = transform
 
     def __len__(self):
         return len(self.dataset)
@@ -189,13 +189,13 @@ class SVODataset(torch.utils.data.Dataset):
             if detection['subject_boxes'][0][0].item() == -1:
                 detection['subject_boxes'] = None
             else:
-                detection['subject_boxes'] = transform.resize_boxes(
+                detection['subject_boxes'] = detectiontransform.resize_boxes(
                     detection['subject_boxes'], original_image_size, image_size)
 
             if detection['object_boxes'][0][0].item() == -1:
                 detection['object_boxes'] = None
             else:
-                detection['object_boxes'] = transform.resize_boxes(
+                detection['object_boxes'] = detectiontransform.resize_boxes(
                     detection['object_boxes'], original_image_size, image_size)
 
             if target is None:
@@ -211,7 +211,7 @@ class SVODataset(torch.utils.data.Dataset):
                 raw_verb_label = verb_label
                 subject_label = None if raw_subject_label.item() == -1 else raw_subject_label
                 object_label = None if raw_object_label.item() == -1 else raw_object_label
-                verb_label = None if raw_subject_label.item() == -1 else raw_verb_label
+                verb_label = None if (raw_subject_label.item() == -1 or (raw_verb_label.item() == 0 and (raw_subject_label.item() == 0 or raw_object_label.item() == 0))) else raw_verb_label
 
             if detection['subject_boxes'] is not None and detection['object_boxes'] is not None:
                 s_xmin, s_ymin, s_xmax, s_ymax = torch.round(
@@ -275,4 +275,9 @@ class SVODataset(torch.utils.data.Dataset):
                 object_image = None
                 verb_image = None
 
+            if self.transform is not None:
+                subject_image = self.transform(subject_image)
+                verb_image = self.transform(verb_image)
+                object_image = self.transform(object_image)
+            
             return subject_image, verb_image, object_image, spatial_encodings, subject_label, verb_label, object_label
