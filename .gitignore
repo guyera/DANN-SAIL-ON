@@ -1,7 +1,9 @@
 Custom/*
-saved_models/*
+logs/
+saves/
 .vscode/*
 wandb/*
 some_images/*
 example.py
 eda.ipynb
+__pycache__

@@ -3,7 +3,6 @@ import copy
 import torch
 import torch.nn as nn
 from torchvision.models import resnet18, resnet34
-from grl import GradientReverseLayer, WarmStartGradientReverseLayer
 from data.svodataset import SVODataset
 #from featurizer import Featurizer
 from torch.optim import SGD
@@ -44,7 +43,11 @@ def custom_collate(batch):
         classifier_labels.append(classifier_label)
         adversary_1_labels.append(adversary_1_label)
         adversary_2_labels.append(adversary_2_label)
-
+    
+    images = torch.stack(images, dim = 0)
+    classifier_labels = torch.stack(classifier_labels, dim = 0)
+    spatial_encodings = torch.stack(spatial_encodings, dim = 0) if spatial_encodings[0] is not None else None
+    
     return images, spatial_encodings, classifier_labels, adversary_1_labels, adversary_2_labels
 
 def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor, classifier, adversary_1, adversary_2, classifier_optimizer: SGD, adversary_optimizer: SGD):
@@ -74,33 +77,33 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor,
     for images, spatial_encodings, classifier_labels, adversary_1_labels, adversary_2_labels in train_loader:
         step_adversary = args.train_adversaries and step_type_counter < 0.0
         
-        images = torch.stack(images, dim = 0).to(device)
-        classifier_labels = torch.stack(classifier_labels, dim = 0).to(device)
+        images = images.to(device)
+        classifier_labels = classifier_labels.to(device)
         
         adversary_1_present = [idx for idx, label in enumerate(adversary_1_labels) if label is not None]
         adversary_2_present = [idx for idx, label in enumerate(adversary_2_labels) if label is not None]
-        adversary_1_present_labels = torch.stack([adversary_1_labels[i] for i in adversary_1_present], dim = 0).to(device)
-        adversary_2_present_labels = torch.stack([adversary_2_labels[i] for i in adversary_2_present], dim = 0).to(device)
+        adversary_1_present_labels = torch.stack([adversary_1_labels[i] for i in adversary_1_present], dim = 0).to(device) if len(adversary_1_present) > 0 else None
+        adversary_2_present_labels = torch.stack([adversary_2_labels[i] for i in adversary_2_present], dim = 0).to(device) if len(adversary_2_present) > 0 else None
     
         features = feature_extractor(images)
-        adversary_1_features = features[adversary_1_present]
+        adversary_1_features = features[adversary_1_present] if len(adversary_1_present) > 0 else None
         adversary_2_features = features[adversary_2_present]
             
         # If we're training the verb classifier, then make sure the verb
         # classifier has access to the spatial encodings. But the subject and
         # object adversaries shouldn't have access to those encodings.
-        if spatial_encodings[0] is not None:
-            spatial_encodings = torch.stack(spatial_encodings, dim = 0).to(device)
+        if spatial_encodings is not None:
+            spatial_encodings = spatial_encodings.to(device)
             spatial_encodings = torch.flatten(spatial_encodings, start_dim = 1)
             features = torch.cat((spatial_encodings, features), dim = 1)
         
         classifier_preds = classifier(features)
-        adversary_1_preds = adversary_1(adversary_1_features)
-        adversary_2_preds = adversary_2(adversary_2_features)
+        adversary_1_preds = adversary_1(adversary_1_features) if len(adversary_1_present) > 0 else None
+        adversary_2_preds = adversary_2(adversary_2_features) if len(adversary_2_present) > 0 else None
         
         classifier_loss = F.cross_entropy(classifier_preds, classifier_labels)
-        adversary_1_loss = F.cross_entropy(adversary_1_preds, adversary_1_present_labels)
-        adversary_2_loss = F.cross_entropy(adversary_2_preds, adversary_2_present_labels)
+        adversary_1_loss = F.cross_entropy(adversary_1_preds, adversary_1_present_labels) if len(adversary_1_present) > 0 else torch.tensor(0, device = classifier_loss.device)
+        adversary_2_loss = F.cross_entropy(adversary_2_preds, adversary_2_present_labels) if len(adversary_2_present) > 0 else torch.tensor(0, device = classifier_loss.device)
         
         if step_adversary:
             loss = adversary_1_loss + adversary_2_loss
@@ -118,17 +121,17 @@ def train(args: argparse.Namespace, train_loader: DataLoader, feature_extractor,
 
         # Logging losses and accuracies
         total_classifier_examples += features.shape[0]
-        total_adversary_1_examples += adversary_1_features.shape[0]
-        total_adversary_2_examples += adversary_2_features.shape[0]
+        total_adversary_1_examples += len(adversary_1_present)
+        total_adversary_2_examples += len(adversary_2_present)
         
         total_loss += loss.item() * features.shape[0]
         total_classifier_loss += classifier_loss.item() * features.shape[0]
-        total_adversary_1_loss += adversary_1_loss.item() * adversary_1_features.shape[0]
-        total_adversary_2_loss += adversary_2_loss.item() * adversary_2_features.shape[0]
+        total_adversary_1_loss += adversary_1_loss.item() * len(adversary_1_present)
+        total_adversary_2_loss += adversary_2_loss.item() * len(adversary_2_present)
         
         total_classifier_accuracy += accuracy(classifier_preds, classifier_labels) * features.shape[0]
-        total_adversary_1_accuracy += accuracy(adversary_1_preds, adversary_1_present_labels) * adversary_1_features.shape[0]
-        total_adversary_2_accuracy += accuracy(adversary_2_preds, adversary_2_present_labels) * adversary_2_features.shape[0]
+        total_adversary_1_accuracy += accuracy(adversary_1_preds, adversary_1_present_labels) * len(adversary_1_present) if len(adversary_1_present) > 0 else 0
+        total_adversary_2_accuracy += accuracy(adversary_2_preds, adversary_2_present_labels) * len(adversary_2_present) if len(adversary_2_present) > 0 else 0
         
         if not step_adversary:
             step_type_counter -= 1.0
@@ -168,21 +171,23 @@ def finetune_adversaries(args: argparse.Namespace, train_loader: DataLoader, fea
     
     with torch.no_grad():
         for images, _, _, adversary_1_labels, adversary_2_labels in train_loader:
-            images = torch.stack(images, dim = 0).to(device)
+            images = images.to(device)
             
             adversary_1_present = [idx for idx, label in enumerate(adversary_1_labels) if label is not None]
             adversary_2_present = [idx for idx, label in enumerate(adversary_2_labels) if label is not None]
-            adversary_1_present_labels = torch.stack([adversary_1_labels[i] for i in adversary_1_present], dim = 0).to(device)
-            adversary_2_present_labels = torch.stack([adversary_2_labels[i] for i in adversary_2_present], dim = 0).to(device)
+            adversary_1_present_labels = torch.stack([adversary_1_labels[i] for i in adversary_1_present], dim = 0).to(device) if len(adversary_1_present) > 0 else None
+            adversary_2_present_labels = torch.stack([adversary_2_labels[i] for i in adversary_2_present], dim = 0).to(device) if len(adversary_2_present) > 0 else None
             
             features = feature_extractor(images)
-            adversary_1_features = features[adversary_1_present]
-            adversary_2_features = features[adversary_2_present]
+            adversary_1_features = features[adversary_1_present] if len(adversary_1_present) > 0 else None
+            adversary_2_features = features[adversary_2_present] if len(adversary_2_present) > 0 else None
             
-            all_adversary_1_labels.append(adversary_1_present_labels)
-            all_adversary_2_labels.append(adversary_2_present_labels)
-            all_adversary_1_features.append(adversary_1_features)
-            all_adversary_2_features.append(adversary_2_features)
+            if len(adversary_1_present) > 0:
+                all_adversary_1_labels.append(adversary_1_present_labels)
+                all_adversary_1_features.append(adversary_1_features)
+            if len(adversary_2_present) > 0:
+                all_adversary_2_labels.append(adversary_2_present_labels)
+                all_adversary_2_features.append(adversary_2_features)
             
     all_adversary_1_labels = torch.cat(all_adversary_1_labels, dim = 0)
     all_adversary_2_labels = torch.cat(all_adversary_2_labels, dim = 0)
@@ -224,48 +229,48 @@ def validate(args: argparse.Namespace, val_loader: DataLoader, feature_extractor
     
     with torch.no_grad():
         for images, spatial_encodings, classifier_labels, adversary_1_labels, adversary_2_labels in val_loader:
-            images = torch.stack(images, dim = 0).to(device)
-            classifier_labels = torch.stack(classifier_labels, dim = 0).to(device)
+            images = images.to(device)
+            classifier_labels = classifier_labels.to(device)
 
             adversary_1_present = [idx for idx, label in enumerate(adversary_1_labels) if label is not None]
             adversary_2_present = [idx for idx, label in enumerate(adversary_2_labels) if label is not None]
-            adversary_1_present_labels = torch.stack([adversary_1_labels[i] for i in adversary_1_present], dim = 0).to(device)
-            adversary_2_present_labels = torch.stack([adversary_2_labels[i] for i in adversary_2_present], dim = 0).to(device)
+            adversary_1_present_labels = torch.stack([adversary_1_labels[i] for i in adversary_1_present], dim = 0).to(device) if len(adversary_1_present) > 0 else None
+            adversary_2_present_labels = torch.stack([adversary_2_labels[i] for i in adversary_2_present], dim = 0).to(device) if len(adversary_2_present) > 0 else None
             
             features = feature_extractor(images)
-            adversary_1_present_features = features[adversary_1_present]
-            adversary_2_present_features = features[adversary_2_present]
+            adversary_1_present_features = features[adversary_1_present] if len(adversary_1_present) > 0 else None
+            adversary_2_present_features = features[adversary_2_present] if len(adversary_2_present) > 0 else None
 
             # If we're training the verb classifier, then make sure the verb
             # classifier has access to the spatial encodings. But the subject and
             # object adversaries shouldn't have access to those encodings.
-            if spatial_encodings[0] is not None:
-                spatial_encodings = torch.stack(spatial_encodings, dim = 0).to(device)
+            if spatial_encodings is not None:
+                spatial_encodings = spatial_encodings.to(device)
                 spatial_encodings = torch.flatten(spatial_encodings, start_dim = 1)
                 features = torch.cat((spatial_encodings, features), dim = 1)
             
             classifier_preds = classifier(features)
-            adversary_1_preds = adversary_1(adversary_1_present_features)
-            adversary_2_preds = adversary_2(adversary_2_present_features)
+            adversary_1_preds = adversary_1(adversary_1_present_features) if len(adversary_1_present) > 0 else None
+            adversary_2_preds = adversary_2(adversary_2_present_features) if len(adversary_2_present) > 0 else None
             
             classifier_loss = F.cross_entropy(classifier_preds, classifier_labels)
-            adversary_1_loss = F.cross_entropy(adversary_1_preds, adversary_1_present_labels)
-            adversary_2_loss = F.cross_entropy(adversary_2_preds, adversary_2_present_labels)
+            adversary_1_loss = F.cross_entropy(adversary_1_preds, adversary_1_present_labels) if len(adversary_1_present) > 0 else torch.tensor(0, device = classifier_loss.device)
+            adversary_2_loss = F.cross_entropy(adversary_2_preds, adversary_2_present_labels) if len(adversary_2_present) > 0 else torch.tensor(0, device = classifier_loss.device)
             
             loss = classifier_loss - adversary_1_loss - adversary_2_loss
             
             total_classifier_examples += features.shape[0]
-            total_adversary_1_examples += adversary_1_present_features.shape[0]
-            total_adversary_2_examples += adversary_2_present_features.shape[0]
+            total_adversary_1_examples += len(adversary_1_present)
+            total_adversary_2_examples += len(adversary_2_present)
             
             total_loss += loss.item() * features.shape[0]
             total_classifier_loss += classifier_loss.item() * features.shape[0]
-            total_adversary_1_loss += adversary_1_loss.item() * adversary_1_present_features.shape[0]
-            total_adversary_2_loss += adversary_2_loss.item() * adversary_2_present_features.shape[0]
+            total_adversary_1_loss += adversary_1_loss.item() * len(adversary_1_present)
+            total_adversary_2_loss += adversary_2_loss.item() * len(adversary_2_present)
             
             total_classifier_accuracy += accuracy(classifier_preds, classifier_labels) * features.shape[0]
-            total_adversary_1_accuracy += accuracy(adversary_1_preds, adversary_1_present_labels) * adversary_1_present_features.shape[0]
-            total_adversary_2_accuracy += accuracy(adversary_2_preds, adversary_2_present_labels) * adversary_2_present_features.shape[0]
+            total_adversary_1_accuracy += accuracy(adversary_1_preds, adversary_1_present_labels) * len(adversary_1_present)
+            total_adversary_2_accuracy += accuracy(adversary_2_preds, adversary_2_present_labels) * len(adversary_2_present)
             
     mean_loss = total_loss / total_classifier_examples
     mean_classifier_loss = total_classifier_loss / total_classifier_examples
@@ -334,7 +339,8 @@ class VerbImageSVODataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         _, images, _, spatial_encodings, subject_labels, verb_labels, object_labels = self.svo_dataset[idx]
-        return images, spatial_encodings, verb_labels, subject_labels, object_labels
+        #return images, spatial_encodings, verb_labels, subject_labels, object_labels
+        return images, None, verb_labels, subject_labels, object_labels
 
 class ObjectImageSVODataset(torch.utils.data.Dataset):
     def __init__(self, svo_dataset):
@@ -458,7 +464,7 @@ def run(args, dataset, classifier, adversary_1, adversary_2, save_subdir):
         save_dir = os.path.join(args.save_dir, save_subdir)
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        torch.save(state_dicts, os.path.join(save_dir, 'best_accuracy.pth'))
+        torch.save(state_dicts, os.path.join(save_dir, 'best_loss.pth'))
     
     print("Loading best model based on validation accuracy...", end = "")
     feature_extractor.load_state_dict(best_accuracy_state_dicts['feature_extractor'])
@@ -557,7 +563,8 @@ def main(args):
     print('################################')
     print('#   Training verb classifier   #')
     print('################################')
-    verb_classifier = torch.nn.Linear(args.bottleneck_dim + args.spatial_encoding_dim, NUM_VERBS).to(device)
+    #verb_classifier = torch.nn.Linear(args.bottleneck_dim + args.spatial_encoding_dim, NUM_VERBS).to(device)
+    verb_classifier = torch.nn.Linear(args.bottleneck_dim, NUM_VERBS).to(device)
     verb_subject_adversary = torch.nn.Linear(args.bottleneck_dim, NUM_SUBJECTS).to(device)
     verb_object_adversary = torch.nn.Linear(args.bottleneck_dim, NUM_OBJECTS).to(device)
     run(args, verb_dataset, verb_classifier, verb_subject_adversary, verb_object_adversary, 'verb')
@@ -589,14 +596,10 @@ if __name__ == '__main__':
                         default=72,
                         type=int,
                         help='Dimension of flattened spatial encodings')
-    parser.add_argument('--verb-trade-off',
+    parser.add_argument('--adversary-trade-off',
                         default=0.5,
                         type=float,
-                        help='the trade-off hyper-parameter for the verb classifying head')
-    parser.add_argument('--object-trade-off',
-                        default=0.5,
-                        type=float,
-                        help='the trade-off hyper-parameter for the object classifying head')
+                        help='the trade-off hyper-parameter for the adversaries')
     # training hyperparameters
     parser.add_argument('-b',
                         '--train-batch-size',
